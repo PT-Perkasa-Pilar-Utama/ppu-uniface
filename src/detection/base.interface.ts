@@ -96,10 +96,11 @@ export abstract class BaseDetection extends Base {
    * @param shape - Image shape [width, height]
    * @returns Processed boxes, scores, and landmarks
    */
-  abstract postprocess(
-    outputs: ort.InferenceSession.OnnxValueMapType,
-    shape: [number, number]
-  ): { boxes: Float32Array; scores: Float32Array; landmarks: Float32Array };
+  abstract postprocess(outputs: ort.InferenceSession.OnnxValueMapType): {
+    boxes: Float32Array;
+    scores: Float32Array;
+    landmarks: Float32Array;
+  };
 
   /** Releases model resources */
   abstract destroy(): Promise<void>;
@@ -266,7 +267,7 @@ export abstract class BaseDetection extends Base {
       y2[i] = dets[idx + 3]!;
 
       scores[i] = dets[idx + 4]!;
-      areas[i] = (x2[i]! - x1[i]! + 1) * (y2[i]! - y1[i]! + 1);
+      areas[i] = (x2[i]! - x1[i]!) * (y2[i]! - y1[i]!);
     }
 
     const order = Array.from({ length: numDets }, (_, i) => i);
@@ -288,8 +289,8 @@ export abstract class BaseDetection extends Base {
         const xx2 = Math.min(x2[i]!, x2[j]!);
         const yy2 = Math.min(y2[i]!, y2[j]!);
 
-        const w = Math.max(0.0, xx2 - xx1 + 1);
-        const h = Math.max(0.0, yy2 - yy1 + 1);
+        const w = Math.max(0.0, xx2 - xx1);
+        const h = Math.max(0.0, yy2 - yy1);
         const inter = w * h;
 
         const iou = inter / (areas[i]! + areas[j]! - inter);

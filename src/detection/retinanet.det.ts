@@ -25,7 +25,7 @@ export class RetinaNetDetection extends BaseDetection {
       postNonMaxiumSuppression: 750,
     },
     size: {
-      input: [640, 640],
+      input: [320, 320],
     },
   };
 
@@ -81,7 +81,7 @@ export class RetinaNetDetection extends BaseDetection {
 
     const tensor = this.preprocess(inputCanvas, targetH, targetW);
     const outputs = await this.inference(tensor, [targetH, targetW]);
-    const result = this.postprocess(outputs, [targetW, targetH]);
+    const result = this.postprocess(outputs);
     const numDetections = result.boxes.length / 4;
 
     if (numDetections === 0) {
@@ -188,10 +188,11 @@ export class RetinaNetDetection extends BaseDetection {
     return result;
   }
 
-  postprocess(
-    outputs: ort.InferenceSession.OnnxValueMapType,
-    shape: [number, number]
-  ): { boxes: Float32Array; scores: Float32Array; landmarks: Float32Array } {
+  postprocess(outputs: ort.InferenceSession.OnnxValueMapType): {
+    boxes: Float32Array;
+    scores: Float32Array;
+    landmarks: Float32Array;
+  } {
     const { loc, conf, landmarks } = outputs;
 
     const locData = loc!.data as Float32Array;

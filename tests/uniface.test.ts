@@ -23,7 +23,9 @@ describe("Uniface", () => {
   });
 
   test("should detect face in image", async () => {
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const result = await uniface.detect(imageBuffer);
 
     expect(result).not.toBeNull();
@@ -33,7 +35,9 @@ describe("Uniface", () => {
   });
 
   test("should recognize face and generate embedding", async () => {
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const result = await uniface.recognize(imageBuffer);
 
     expect(result).toBeDefined();
@@ -42,8 +46,12 @@ describe("Uniface", () => {
   });
 
   test("should verify same person with full result", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-haaland2.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-haaland2.png"
+    ).arrayBuffer();
 
     const result = await uniface.verify(imageBuffer1, imageBuffer2, {
       compact: false,
@@ -62,8 +70,12 @@ describe("Uniface", () => {
   });
 
   test("should verify same person with compact result", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-haaland2.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-haaland2.png"
+    ).arrayBuffer();
 
     const result = await uniface.verify(imageBuffer1, imageBuffer2, {
       compact: true,
@@ -80,8 +92,12 @@ describe("Uniface", () => {
   });
 
   test("should verify different persons", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-kevin1.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-kevin1.png"
+    ).arrayBuffer();
 
     const result = await uniface.verify(imageBuffer1, imageBuffer2, {
       compact: false,
@@ -95,8 +111,12 @@ describe("Uniface", () => {
   });
 
   test("should verify embeddings directly", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-haaland2.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-haaland2.png"
+    ).arrayBuffer();
 
     const recognition1 = await uniface.recognize(imageBuffer1);
     const recognition2 = await uniface.recognize(imageBuffer2);
@@ -114,8 +134,12 @@ describe("Uniface", () => {
   });
 
   test("should handle full verification workflow", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-haaland2.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-haaland2.png"
+    ).arrayBuffer();
 
     const detection1 = await uniface.detect(imageBuffer1);
     const detection2 = await uniface.detect(imageBuffer2);
@@ -138,8 +162,12 @@ describe("Uniface", () => {
   });
 
   test("should provide consistent results across multiple verifications", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-haaland2.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-haaland2.png"
+    ).arrayBuffer();
 
     const result1 = await uniface.verify(imageBuffer1, imageBuffer2, {
       compact: false,
@@ -158,8 +186,12 @@ describe("Uniface", () => {
   });
 
   test("should handle multiple faces flag in verification", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-kevin1.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-kevin1.png"
+    ).arrayBuffer();
 
     const result = await uniface.verify(imageBuffer1, imageBuffer2, {
       compact: true,
@@ -172,8 +204,12 @@ describe("Uniface", () => {
   });
 
   test("should handle spoofing flag in verification", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-kevin1.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-kevin1.png"
+    ).arrayBuffer();
 
     const result = await uniface.verify(imageBuffer1, imageBuffer2, {
       compact: true,
@@ -189,7 +225,9 @@ describe("Uniface", () => {
     const testUniface = new Uniface();
     await testUniface.initialize();
 
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const result = await testUniface.detect(imageBuffer);
     expect(result).not.toBeNull();
 
@@ -201,7 +239,9 @@ describe("Uniface", () => {
   });
 
   test("should handle different image formats in verification", async () => {
-    const jpegBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const jpegBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const pngBuffer = await Bun.file("assets/image-haaland2.png").arrayBuffer();
 
     const result = await uniface.verify(jpegBuffer, pngBuffer, {
@@ -215,8 +255,12 @@ describe("Uniface", () => {
   });
 
   test("should verify with high similarity for same person", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-haaland2.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-haaland2.png"
+    ).arrayBuffer();
 
     const result = await uniface.verify(imageBuffer1, imageBuffer2, {
       compact: false,
@@ -228,8 +272,12 @@ describe("Uniface", () => {
   });
 
   test("should verify with lower similarity for different persons", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-kevin1.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-kevin1.png"
+    ).arrayBuffer();
 
     const result = await uniface.verify(imageBuffer1, imageBuffer2, {
       compact: false,
@@ -242,8 +290,12 @@ describe("Uniface", () => {
   });
 
   test("should verify Magnus with and without glasses", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-magnus1.png").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-magnus2.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-magnus1.png"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-magnus2.png"
+    ).arrayBuffer();
 
     const result = await uniface.verify(imageBuffer1, imageBuffer2, {
       compact: false,
@@ -257,7 +309,9 @@ describe("Uniface", () => {
   });
 
   test("should detect face in Magnus image without glasses", async () => {
-    const imageBuffer = await Bun.file("assets/image-magnus1.png").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-magnus1.png"
+    ).arrayBuffer();
     const result = await uniface.detect(imageBuffer);
 
     expect(result).not.toBeNull();
@@ -267,7 +321,9 @@ describe("Uniface", () => {
   });
 
   test("should detect face in Magnus image with glasses", async () => {
-    const imageBuffer = await Bun.file("assets/image-magnus2.png").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-magnus2.png"
+    ).arrayBuffer();
     const result = await uniface.detect(imageBuffer);
 
     expect(result).not.toBeNull();
@@ -277,18 +333,25 @@ describe("Uniface", () => {
   });
 
   test("should detect face in image with multiple people", async () => {
-    const imageBuffer = await Bun.file("assets/image-tdf-many.png").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-tdf-many.png"
+    ).arrayBuffer();
     const result = await uniface.detect(imageBuffer);
 
     expect(result).not.toBeNull();
     expect(result?.box).toBeDefined();
     expect(result?.confidence).toBeGreaterThan(0);
     expect(typeof result?.multipleFaces).toBe("boolean");
+    expect(result?.multipleFaces).toBe(true);
   });
 
   test("should verify with image containing multiple people", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-tdf-many.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-tdf-many.png"
+    ).arrayBuffer();
 
     const result = await uniface.verify(imageBuffer1, imageBuffer2, {
       compact: true,
@@ -302,8 +365,12 @@ describe("Uniface", () => {
   });
 
   test("should verify Kevin images", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-kevin1.png").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-kevin2.jpg").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-kevin1.png"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-kevin2.jpg"
+    ).arrayBuffer();
 
     const result = await uniface.verify(imageBuffer1, imageBuffer2, {
       compact: false,
@@ -317,8 +384,12 @@ describe("Uniface", () => {
   });
 
   test("should verify Magnus vs Kevin (different persons)", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-magnus1.png").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-kevin1.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-magnus1.png"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-kevin1.png"
+    ).arrayBuffer();
 
     const result = await uniface.verify(imageBuffer1, imageBuffer2, {
       compact: false,
