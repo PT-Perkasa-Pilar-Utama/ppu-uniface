@@ -29,8 +29,24 @@ export class RetinaNetDetection extends BaseDetection {
     },
   };
 
-  constructor() {
+  constructor(options: Partial<DetectionModelOptions> = {}) {
     super();
+    this.detectionOptions = {
+      ...this.detectionOptions,
+      ...options,
+      threshold: {
+        ...this.detectionOptions.threshold,
+        ...(options.threshold || {}),
+      },
+      topK: {
+        ...this.detectionOptions.topK,
+        ...(options.topK || {}),
+      },
+      size: {
+        ...this.detectionOptions.size,
+        ...(options.size || {}),
+      },
+    };
   }
 
   async initialize(): Promise<void> {

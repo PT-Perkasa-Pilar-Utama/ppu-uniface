@@ -9,6 +9,14 @@ export class CosineVerification extends BaseVerification {
     threshold: 0.7,
   };
 
+  constructor(options: Partial<VerificationModelOptions> = {}) {
+    super();
+    this.verificationOptions = {
+      ...this.verificationOptions,
+      ...options,
+    };
+  }
+
   compare(
     embedding1: Float32Array,
     embedding2: Float32Array

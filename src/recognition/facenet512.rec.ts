@@ -19,8 +19,16 @@ export class FaceNet512Recognition extends BaseRecognition {
     },
   };
 
-  constructor() {
+  constructor(options: Partial<RecognitionModelOptions> = {}) {
     super();
+    this.recognitionOptions = {
+      ...this.recognitionOptions,
+      ...options,
+      size: {
+        ...this.recognitionOptions.size,
+        ...(options.size || {}),
+      },
+    };
   }
 
   async initialize(): Promise<void> {

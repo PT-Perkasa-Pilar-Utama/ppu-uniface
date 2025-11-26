@@ -2,12 +2,14 @@ import { Canvas, ImageProcessor } from "ppu-ocv";
 import { alignAndCropFace } from "./alignment.face";
 import type {
   BaseDetection,
+  DetectionModelOptions,
   DetectionResult,
 } from "./detection/base.interface";
 import { RetinaNetDetection } from "./detection/retinanet.det";
 import { logger } from "./logger";
 import type {
   BaseRecognition,
+  RecognitionModelOptions,
   RecognitionResult,
 } from "./recognition/base.interface";
 import { FaceNet512Recognition } from "./recognition/facenet512.rec";
@@ -18,9 +20,22 @@ import type {
 } from "./uniface.interface";
 import type {
   BaseVerification,
+  VerificationModelOptions,
   VerificationResult,
 } from "./verification/base.interface";
 import { CosineVerification } from "./verification/cosine.ver";
+
+/**
+ * Configuration options for Uniface service
+ */
+export interface UnifaceOptions {
+  /** Options for face detection model */
+  detection?: Partial<DetectionModelOptions>;
+  /** Options for face recognition model */
+  recognition?: Partial<RecognitionModelOptions>;
+  /** Options for face verification */
+  verification?: Partial<VerificationModelOptions>;
+}
 
 /**
  * Main service class for face detection, recognition, and verification
@@ -34,12 +49,12 @@ export class Uniface {
   protected verification: BaseVerification;
 
   /** Initializes Uniface service with default models */
-  constructor() {
+  constructor(options: UnifaceOptions = {}) {
     this.log("constructor", "Initializing Uniface service...");
 
-    this.detection = new RetinaNetDetection();
-    this.recognition = new FaceNet512Recognition();
-    this.verification = new CosineVerification();
+    this.detection = new RetinaNetDetection(options.detection);
+    this.recognition = new FaceNet512Recognition(options.recognition);
+    this.verification = new CosineVerification(options.verification);
 
     this.log(
       "constructor",

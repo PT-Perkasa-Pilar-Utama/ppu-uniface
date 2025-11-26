@@ -126,6 +126,51 @@ await detector.destroy();
 await recognizer.destroy();
 ```
 
+## Configuration
+
+You can customize the models by passing options to the `Uniface` constructor or individual model constructors.
+
+### Detection Options (`DetectionModelOptions`)
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `threshold.confidence` | `number` | `0.7` | Minimum confidence score for face detection |
+| `threshold.nonMaximumSuppression` | `number` | `0.4` | IoU threshold for non-maximum suppression |
+| `topK.preNonMaximumSuppression` | `number` | `5000` | Maximum detections before NMS |
+| `topK.postNonMaxiumSuppression` | `number` | `750` | Maximum detections after NMS |
+| `size.input` | `[number, number]` | `[320, 320]` | Input dimensions [height, width] |
+
+### Recognition Options (`RecognitionModelOptions`)
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `size.input` | `[number, number, number, number]` | `[1, 160, 160, 3]` | Input tensor shape [batch, height, width, channels] |
+| `size.output` | `[number, number]` | `[1, 512]` | Output tensor shape [batch, embedding_size] |
+
+### Verification Options (`VerificationModelOptions`)
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `threshold` | `number` | `0.7` | Similarity threshold for verification |
+
+### Example with Custom Options
+
+```typescript
+const uniface = new Uniface({
+  detection: {
+    threshold: {
+      confidence: 0.9,
+    },
+    size: {
+      input: [640, 640],
+    },
+  },
+  verification: {
+    threshold: 0.8,
+  },
+});
+```
+
 ## API Reference
 
 ### `Uniface`
