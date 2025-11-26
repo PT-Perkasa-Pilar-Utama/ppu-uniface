@@ -149,12 +149,12 @@ export class Uniface {
     if (options.compact) {
       return {
         multipleFaces: {
-          face1: result1.detection?.multipleFaces || null,
-          face2: result2.detection?.multipleFaces || null,
+          face1: result1.detection?.multipleFaces ?? null,
+          face2: result2.detection?.multipleFaces ?? null,
         },
         spoofing: {
-          face1: result1.detection?.spoofing || null,
-          face2: result2.detection?.spoofing || null,
+          face1: result1.detection?.spoofing ?? null,
+          face2: result2.detection?.spoofing ?? null,
         },
         verified: verification.verified,
         similarity: verification.similarity,
