@@ -132,26 +132,26 @@ You can customize the models by passing options to the `Uniface` constructor or 
 
 ### Detection Options (`DetectionModelOptions`)
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `threshold.confidence` | `number` | `0.7` | Minimum confidence score for face detection |
-| `threshold.nonMaximumSuppression` | `number` | `0.4` | IoU threshold for non-maximum suppression |
-| `topK.preNonMaximumSuppression` | `number` | `5000` | Maximum detections before NMS |
-| `topK.postNonMaxiumSuppression` | `number` | `750` | Maximum detections after NMS |
-| `size.input` | `[number, number]` | `[320, 320]` | Input dimensions [height, width] |
+| Option                            | Type               | Default      | Description                                 |
+| --------------------------------- | ------------------ | ------------ | ------------------------------------------- |
+| `threshold.confidence`            | `number`           | `0.7`        | Minimum confidence score for face detection |
+| `threshold.nonMaximumSuppression` | `number`           | `0.4`        | IoU threshold for non-maximum suppression   |
+| `topK.preNonMaximumSuppression`   | `number`           | `5000`       | Maximum detections before NMS               |
+| `topK.postNonMaxiumSuppression`   | `number`           | `750`        | Maximum detections after NMS                |
+| `size.input`                      | `[number, number]` | `[320, 320]` | Input dimensions [height, width]            |
 
 ### Recognition Options (`RecognitionModelOptions`)
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `size.input` | `[number, number, number, number]` | `[1, 160, 160, 3]` | Input tensor shape [batch, height, width, channels] |
-| `size.output` | `[number, number]` | `[1, 512]` | Output tensor shape [batch, embedding_size] |
+| Option        | Type                               | Default            | Description                                         |
+| ------------- | ---------------------------------- | ------------------ | --------------------------------------------------- |
+| `size.input`  | `[number, number, number, number]` | `[1, 160, 160, 3]` | Input tensor shape [batch, height, width, channels] |
+| `size.output` | `[number, number]`                 | `[1, 512]`         | Output tensor shape [batch, embedding_size]         |
 
 ### Verification Options (`VerificationModelOptions`)
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `threshold` | `number` | `0.7` | Similarity threshold for verification |
+| Option      | Type     | Default | Description                           |
+| ----------- | -------- | ------- | ------------------------------------- |
+| `threshold` | `number` | `0.7`   | Similarity threshold for verification |
 
 ### Example with Custom Options
 
@@ -222,8 +222,14 @@ Main service class for face detection, recognition, and verification.
 
 ```typescript
 {
-  multipleFaces: { face1: boolean | null; face2: boolean | null };
-  spoofing: { face1: boolean | null; face2: boolean | null };
+  multipleFaces: {
+    face1: boolean | null;
+    face2: boolean | null;
+  }
+  spoofing: {
+    face1: boolean | null;
+    face2: boolean | null;
+  }
   verified: boolean;
   similarity: number;
 }
@@ -233,8 +239,14 @@ Main service class for face detection, recognition, and verification.
 
 ```typescript
 {
-  detection: { face1: DetectionResult | null; face2: DetectionResult | null };
-  recognition: { face1: RecognitionResult; face2: RecognitionResult };
+  detection: {
+    face1: DetectionResult | null;
+    face2: DetectionResult | null;
+  }
+  recognition: {
+    face1: RecognitionResult;
+    face2: RecognitionResult;
+  }
   verification: VerificationResult;
 }
 ```
@@ -243,8 +255,8 @@ Main service class for face detection, recognition, and verification.
 
 The library automatically downloads and caches the following models on first use:
 
-- **RetinaFace MobileNet V2** (~1.7MB) - Face detection
-- **FaceNet512** (~23MB) - Face recognition
+- **RetinaFace MobileNet V2** (~12.5MB) - Face detection
+- **FaceNet512** (~89.63MB) - Face recognition
 
 Models are cached in `~/.cache/ppu-uniface/` for faster subsequent loads.
 
@@ -263,6 +275,7 @@ bun test
 ```
 
 The library includes comprehensive unit tests covering:
+
 - Face detection with RetinaNet
 - Face recognition with FaceNet512
 - Cosine similarity verification
@@ -271,6 +284,7 @@ The library includes comprehensive unit tests covering:
 ## Performance
 
 Typical performance on modern hardware:
+
 - **Detection**: ~50-150ms per image
 - **Recognition**: ~30-80ms per aligned face
 - **Full Verification**: ~100-300ms for two images
@@ -278,7 +292,7 @@ Typical performance on modern hardware:
 ## Requirements
 
 - **Runtime**: Bun or Node.js 18+
-- **Dependencies**: 
+- **Dependencies**:
   - `onnxruntime-node` - ONNX model inference
   - `ppu-ocv` - Computer vision utilities
 
