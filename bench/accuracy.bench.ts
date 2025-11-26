@@ -1,5 +1,23 @@
 import { Uniface } from "../src";
 
+import { readFileSync } from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const fileKevin1 = readFileSync(join(__dirname, "../assets/image-kevin1.png"));
+const kevin1 = fileKevin1.buffer.slice(
+  fileKevin1.byteOffset,
+  fileKevin1.byteOffset + fileKevin1.byteLength
+);
+
+const fileKevin2 = readFileSync(join(__dirname, "../assets/image-kevin1.png"));
+const kevin2 = fileKevin2.buffer.slice(
+  fileKevin2.byteOffset,
+  fileKevin2.byteOffset + fileKevin2.byteLength
+);
+
 const GROUND_TRUTH: { [key: string]: boolean } = {
   "image-kevin1.png-image-kevin2.jpg": true,
   "image-kevin1.png-image-haaland1.jpeg": false,
@@ -13,19 +31,27 @@ const uniFace = new Uniface();
 await uniFace.initialize();
 
 const images = [
-  { name: "image-kevin1.png", path: "assets/image-kevin1.png" },
-  { name: "image-kevin2.jpg", path: "assets/image-kevin2.jpg" },
-  { name: "image-haaland1.jpeg", path: "assets/image-haaland1.jpeg" },
-  { name: "image-haaland2.png", path: "assets/image-haaland2.png" },
+  { name: "image-kevin1.png", path: "../assets/image-kevin1.png" },
+  { name: "image-kevin2.jpg", path: "../assets/image-kevin2.jpg" },
+  { name: "image-haaland1.jpeg", path: "../assets/image-haaland1.jpeg" },
+  { name: "image-haaland2.png", path: "../assets/image-haaland2.png" },
 ];
 
 console.log("Image 1, Image 2, Similarity, Verified, Ground Truth");
 
 const loadedImages = await Promise.all(
-  images.map(async (img) => ({
-    name: img.name,
-    buffer: await Bun.file(img.path).arrayBuffer(),
-  }))
+  images.map(async (img) => {
+    const file = readFileSync(join(__dirname, img.path));
+    const buffer = file.buffer.slice(
+      file.byteOffset,
+      file.byteOffset + file.byteLength
+    );
+
+    return {
+      name: img.name,
+      buffer,
+    };
+  })
 );
 
 for (let i = 0; i < loadedImages.length; i++) {

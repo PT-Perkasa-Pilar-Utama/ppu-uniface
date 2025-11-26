@@ -1,9 +1,23 @@
+import { readFileSync } from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 import { Uniface } from "../src";
 
-const faceService = new Uniface();
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const kevin1 = await Bun.file("assets/image-kevin1.png").arrayBuffer();
-const kevin2 = await Bun.file("assets/image-kevin2.jpg").arrayBuffer();
+const fileKevin1 = readFileSync(join(__dirname, "../assets/image-kevin1.png"));
+const kevin1 = fileKevin1.buffer.slice(
+  fileKevin1.byteOffset,
+  fileKevin1.byteOffset + fileKevin1.byteLength
+);
+
+const fileKevin2 = readFileSync(join(__dirname, "../assets/image-kevin1.png"));
+const kevin2 = fileKevin2.buffer.slice(
+  fileKevin2.byteOffset,
+  fileKevin2.byteOffset + fileKevin2.byteLength
+);
+
+const faceService = new Uniface();
 
 console.log("Warming up...");
 await faceService.initialize();
