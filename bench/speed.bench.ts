@@ -17,11 +17,11 @@ const kevin2 = fileKevin2.buffer.slice(
   fileKevin2.byteOffset + fileKevin2.byteLength
 );
 
-const faceService = new Uniface();
+const uniface = new Uniface();
 
 console.log("Warming up...");
-await faceService.initialize();
-await faceService.verify(kevin1, kevin2);
+await uniface.initialize();
+await uniface.verify(kevin1, kevin2);
 
 console.log("Benchmarking...");
 let totalDuration = 0;
@@ -29,7 +29,7 @@ const iterations = 7;
 
 for (let i = 0; i < iterations; i++) {
   const startTime = Date.now();
-  await faceService.verify(kevin1, kevin2);
+  await uniface.verify(kevin1, kevin2);
   const duration = Date.now() - startTime;
 
   totalDuration += duration;

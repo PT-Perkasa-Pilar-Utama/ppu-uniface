@@ -4,7 +4,7 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { CosineVerification, Uniface } from "../src";
 
-console.log("Initializing FaceService for benchmarks...");
+console.log("Initializing Uniface for benchmarks...");
 const service = new Uniface();
 await service.initialize();
 
