@@ -1,6 +1,6 @@
 {
   "name": "ppu-uniface",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Typescript, type-safe, opinionated port of python's uniface: a comprehensive library for face detection, recognition, ~~landmark analysis, age, and gender detection.~~",
   "keywords": [
     "bun-compatible",
