@@ -64,13 +64,7 @@ export class Uniface {
    * @returns Detection result or null if no face found
    */
   async detect(image: ArrayBuffer | Canvas): Promise<DetectionResult | null> {
-    this.log("detect", "Starting face detection...");
     const result = await this.detection.detect(image);
-
-    this.log(
-      "detect",
-      `Detection completed: ${result ? "Face found" : "No face detected"}`
-    );
     return result;
   }
 
@@ -80,13 +74,7 @@ export class Uniface {
    * @returns Recognition result with embedding vector
    */
   async recognize(image: ArrayBuffer | Canvas): Promise<RecognitionResult> {
-    this.log("recognize", "Starting face recognition...");
     const result = await this.recognition.recognize(image);
-
-    this.log(
-      "recognize",
-      `Recognition completed: embedding size ${result.embedding.length}`
-    );
     return result;
   }
 
@@ -131,7 +119,6 @@ export class Uniface {
     image2: ArrayBuffer | Canvas,
     options: UnifaceVerifyOptions = { compact: true }
   ): Promise<UnifaceFullResult | UnifaceCompactResult> {
-    this.log("verify", "Starting verification process...");
     const [result1, result2] = await Promise.all([
       this.processImage(image1),
       this.processImage(image2),
@@ -140,10 +127,6 @@ export class Uniface {
     const verification = await this.verifyEmbedding(
       result1.recognition.embedding,
       result2.recognition.embedding
-    );
-    this.log(
-      "verify",
-      `Verification result: ${verification.verified ? "VERIFIED" : "NOT VERIFIED"}`
     );
 
     if (options.compact) {
@@ -183,7 +166,6 @@ export class Uniface {
     detection: DetectionResult | null;
     recognition: RecognitionResult;
   }> {
-    this.log("processImage", "Starting image processing...");
     const detection = await this.detect(imageBuffer);
     let recognition: RecognitionResult = { embedding: new Float32Array(0) };
 
@@ -192,7 +174,6 @@ export class Uniface {
       recognition = await this.recognize(alignedCanvas);
     }
 
-    this.log("processImage", "Image processing completed");
     return { detection, recognition };
   }
 
@@ -206,15 +187,7 @@ export class Uniface {
     embedding1: Float32Array,
     embedding2: Float32Array
   ): Promise<VerificationResult> {
-    this.log(
-      "verifyEmbedding",
-      `Comparing embeddings (size: ${embedding1.length} vs ${embedding2.length})`
-    );
     const result = this.verification.compare(embedding1, embedding2);
-    this.log(
-      "verifyEmbedding",
-      `Comparison completed: similarity=${result.similarity.toFixed(4)}`
-    );
     return result;
   }
 
