@@ -240,4 +240,94 @@ describe("Uniface", () => {
       expect(result.verification.similarity).toBeLessThanOrEqual(1);
     }
   });
+
+  test("should verify Magnus with and without glasses", async () => {
+    const imageBuffer1 = await Bun.file("assets/image-magnus1.png").arrayBuffer();
+    const imageBuffer2 = await Bun.file("assets/image-magnus2.png").arrayBuffer();
+
+    const result = await uniface.verify(imageBuffer1, imageBuffer2, {
+      compact: false,
+    });
+
+    expect(result).toBeDefined();
+    if ("verification" in result) {
+      expect(result.verification.similarity).toBeGreaterThan(0.5);
+      expect(result.verification.verified).toBe(true);
+    }
+  });
+
+  test("should detect face in Magnus image without glasses", async () => {
+    const imageBuffer = await Bun.file("assets/image-magnus1.png").arrayBuffer();
+    const result = await uniface.detect(imageBuffer);
+
+    expect(result).not.toBeNull();
+    expect(result?.box).toBeDefined();
+    expect(result?.confidence).toBeGreaterThan(0);
+    expect(result?.landmarks).toHaveLength(5);
+  });
+
+  test("should detect face in Magnus image with glasses", async () => {
+    const imageBuffer = await Bun.file("assets/image-magnus2.png").arrayBuffer();
+    const result = await uniface.detect(imageBuffer);
+
+    expect(result).not.toBeNull();
+    expect(result?.box).toBeDefined();
+    expect(result?.confidence).toBeGreaterThan(0);
+    expect(result?.landmarks).toHaveLength(5);
+  });
+
+  test("should detect face in image with multiple people", async () => {
+    const imageBuffer = await Bun.file("assets/image-tdf-many.png").arrayBuffer();
+    const result = await uniface.detect(imageBuffer);
+
+    expect(result).not.toBeNull();
+    expect(result?.box).toBeDefined();
+    expect(result?.confidence).toBeGreaterThan(0);
+    expect(typeof result?.multipleFaces).toBe("boolean");
+  });
+
+  test("should verify with image containing multiple people", async () => {
+    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer2 = await Bun.file("assets/image-tdf-many.png").arrayBuffer();
+
+    const result = await uniface.verify(imageBuffer1, imageBuffer2, {
+      compact: true,
+    });
+
+    expect(result).toBeDefined();
+    if ("multipleFaces" in result) {
+      expect(typeof result.multipleFaces.face1).toBe("boolean");
+      expect(typeof result.multipleFaces.face2).toBe("boolean");
+    }
+  });
+
+  test("should verify Kevin images", async () => {
+    const imageBuffer1 = await Bun.file("assets/image-kevin1.png").arrayBuffer();
+    const imageBuffer2 = await Bun.file("assets/image-kevin2.jpg").arrayBuffer();
+
+    const result = await uniface.verify(imageBuffer1, imageBuffer2, {
+      compact: false,
+    });
+
+    expect(result).toBeDefined();
+    if ("verification" in result) {
+      expect(result.verification.similarity).toBeGreaterThan(0.5);
+      expect(result.verification.verified).toBe(true);
+    }
+  });
+
+  test("should verify Magnus vs Kevin (different persons)", async () => {
+    const imageBuffer1 = await Bun.file("assets/image-magnus1.png").arrayBuffer();
+    const imageBuffer2 = await Bun.file("assets/image-kevin1.png").arrayBuffer();
+
+    const result = await uniface.verify(imageBuffer1, imageBuffer2, {
+      compact: false,
+    });
+
+    expect(result).toBeDefined();
+    if ("verification" in result) {
+      expect(result.verification.verified).toBe(false);
+      expect(result.verification.similarity).toBeLessThan(0.7);
+    }
+  });
 });

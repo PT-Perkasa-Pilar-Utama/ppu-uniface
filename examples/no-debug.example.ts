@@ -1,7 +1,21 @@
+import { readFileSync } from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 import { Uniface } from "../src";
 
-const buffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-const buffer2 = await Bun.file("assets/image-haaland2.png").arrayBuffer();
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const file1 = readFileSync(join(__dirname, "../assets/image-kevin1.png"));
+const buffer = file1.buffer.slice(
+  file1.byteOffset,
+  file1.byteOffset + file1.byteLength
+);
+
+const file2 = readFileSync(join(__dirname, "../assets/image-kevin2.jpg"));
+const buffer2 = file2.buffer.slice(
+  file2.byteOffset,
+  file2.byteOffset + file2.byteLength
+);
 
 console.log("Warming up...");
 const uniface = new Uniface();

@@ -6,18 +6,6 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const fileKevin1 = readFileSync(join(__dirname, "../assets/image-kevin1.png"));
-const kevin1 = fileKevin1.buffer.slice(
-  fileKevin1.byteOffset,
-  fileKevin1.byteOffset + fileKevin1.byteLength
-);
-
-const fileKevin2 = readFileSync(join(__dirname, "../assets/image-kevin1.png"));
-const kevin2 = fileKevin2.buffer.slice(
-  fileKevin2.byteOffset,
-  fileKevin2.byteOffset + fileKevin2.byteLength
-);
-
 const GROUND_TRUTH: { [key: string]: boolean } = {
   "image-kevin1.png-image-kevin2.jpg": true,
   "image-kevin1.png-image-haaland1.jpeg": false,

@@ -17,15 +17,15 @@ export class RetinaNetDetection extends BaseDetection {
 
   protected override detectionOptions: DetectionModelOptions = {
     threshold: {
-      confidence: 0.5,
+      confidence: 0.7,
       nonMaximumSuppression: 0.4,
     },
     topK: {
       preNonMaximumSuppression: 5000,
-      postNonMaxiumSuppression: 5,
+      postNonMaxiumSuppression: 750,
     },
     size: {
-      input: [320, 320],
+      input: [640, 640],
     },
   };
 
@@ -48,7 +48,10 @@ export class RetinaNetDetection extends BaseDetection {
     this.anchorsCache = this.generateAnchors([inputH, inputW]);
     this.anchorsCacheShape = `${inputH}x${inputW}`;
 
-    this.log("initialize", `RetinaNet initialized: ${this.anchorsCache.length / 4} anchors for ${inputW}x${inputH}`);
+    this.log(
+      "initialize",
+      `RetinaNet initialized: ${this.anchorsCache.length / 4} anchors for ${inputW}x${inputH}`
+    );
   }
 
   /**
@@ -129,7 +132,10 @@ export class RetinaNetDetection extends BaseDetection {
     }
 
     const confidence = result.scores[largestIdx]!;
-    this.log("detect", `Detected face: confidence=${(confidence * 100).toFixed(1)}%, multiple=${multipleFaces}`);
+    this.log(
+      "detect",
+      `Detected face: confidence=${(confidence * 100).toFixed(1)}%, multiple=${multipleFaces}`
+    );
 
     return {
       box,

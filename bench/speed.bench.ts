@@ -11,7 +11,7 @@ const kevin1 = fileKevin1.buffer.slice(
   fileKevin1.byteOffset + fileKevin1.byteLength
 );
 
-const fileKevin2 = readFileSync(join(__dirname, "../assets/image-kevin1.png"));
+const fileKevin2 = readFileSync(join(__dirname, "../assets/image-kevin2.jpg"));
 const kevin2 = fileKevin2.buffer.slice(
   fileKevin2.byteOffset,
   fileKevin2.byteOffset + fileKevin2.byteLength

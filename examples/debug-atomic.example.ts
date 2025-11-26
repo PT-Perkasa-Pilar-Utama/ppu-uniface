@@ -4,10 +4,25 @@ import { alignAndCropFace } from "../src/alignment.face";
 import { RetinaNetDetection } from "../src/detection/retinanet.det";
 import { LoggerConfig } from "../src/logger";
 
+import { readFileSync } from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+
 LoggerConfig.verbose = true;
 
-const buffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-const buffer2 = await Bun.file("assets/image-haaland2.png").arrayBuffer();
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const file1 = readFileSync(join(__dirname, "../assets/image-magnus1.png"));
+const buffer = file1.buffer.slice(
+  file1.byteOffset,
+  file1.byteOffset + file1.byteLength
+);
+
+const file2 = readFileSync(join(__dirname, "../assets/image-magnus2.png"));
+const buffer2 = file2.buffer.slice(
+  file2.byteOffset,
+  file2.byteOffset + file2.byteLength
+);
 
 const retina = new RetinaNetDetection();
 await retina.initialize();
