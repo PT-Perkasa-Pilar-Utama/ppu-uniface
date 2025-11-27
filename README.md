@@ -32,6 +32,8 @@ npm install ppu-uniface
 
 ## Usage
 
+It is recommended to do warmup initialize first to download all the models needed to run for the first time.
+
 ### Basic Face Verification
 
 ```typescript

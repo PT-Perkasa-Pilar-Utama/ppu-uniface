@@ -34,7 +34,8 @@
     "build:publish": "bun task build && bun task report-size && bun task publish",
     "lint": "eslint ./src",
     "lint:fix": "eslint ./src --fix",
-    "inspect": "bun run scripts/inspect-onnx.ts"
+    "inspect": "bun run scripts/inspect-onnx.ts",
+    "warmup": "bun run scripts/warmup.ts"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "latest",

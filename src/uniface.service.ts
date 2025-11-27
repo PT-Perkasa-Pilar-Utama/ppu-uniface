@@ -228,6 +228,39 @@ export class Uniface {
   }
 
   /**
+   * Analyzes if a cropped facial image is spoofed
+   * @param image - Cropped facial area image as ArrayBuffer or Canvas
+   * @returns Spoofing analysis result
+   */
+  async spoofingAnalysis(
+    image: ArrayBuffer | Canvas
+  ): Promise<SpoofingResult> {
+    const result = await this.spoofing.analyze(image);
+    return result;
+  }
+
+  /**
+   * Analyzes if an image contains a spoofed face (with automatic detection and cropping)
+   * @param image - Full image as ArrayBuffer or Canvas
+   * @returns Spoofing analysis result or null if no face detected
+   */
+  async spoofingAnalysisWithDetection(
+    image: ArrayBuffer | Canvas
+  ): Promise<SpoofingResult | null> {
+    const detection = await this.detect(image);
+
+    if (detection == null) {
+      return null;
+    }
+
+    const alignedCanvas = await alignAndCropFace(image, detection);
+    const result = await this.spoofing.analyze(alignedCanvas);
+
+    return result;
+  }
+
+
+  /**
    * Logs a message using the logger utility
    * @param methodName - Name of the method
    * @param message - Log message

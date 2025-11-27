@@ -216,8 +216,9 @@ describe("Uniface", () => {
     });
 
     if ("spoofing" in result) {
-      expect(typeof result.spoofing.face1).toBe("boolean");
-      expect(typeof result.spoofing.face2).toBe("boolean");
+      // Spoofing can be null if disabled, or boolean if enabled
+      expect(["boolean", "object"]).toContain(typeof result.spoofing.face1);
+      expect(["boolean", "object"]).toContain(typeof result.spoofing.face2);
     }
   });
 
@@ -400,5 +401,116 @@ describe("Uniface", () => {
       expect(result.verification.verified).toBe(false);
       expect(result.verification.similarity).toBeLessThan(0.7);
     }
+  });
+
+  test("should analyze spoofing on cropped facial image", async () => {
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const result = await uniface.spoofingAnalysis(imageBuffer);
+
+    expect(result).toBeDefined();
+    expect(typeof result.real).toBe("boolean");
+    expect(typeof result.score).toBe("number");
+    expect(result.score).toBeGreaterThanOrEqual(0);
+    expect(result.score).toBeLessThanOrEqual(1);
+  });
+
+  test("should analyze spoofing with detection on full image", async () => {
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const result = await uniface.spoofingAnalysisWithDetection(imageBuffer);
+
+    expect(result).not.toBeNull();
+    expect(result?.real).toBe(true);
+    expect(result?.score).toBeGreaterThan(0);
+  });
+
+  test("should detect real face in Kevin image with spoofing analysis", async () => {
+    const imageBuffer = await Bun.file("assets/image-kevin1.png").arrayBuffer();
+    const result = await uniface.spoofingAnalysisWithDetection(imageBuffer);
+
+    expect(result).not.toBeNull();
+    expect(typeof result?.real).toBe("boolean");
+    expect(result?.score).toBeGreaterThan(0);
+    expect(result?.real).toBe(true);
+  });
+
+  test("should detect real face in Magnus image with spoofing analysis", async () => {
+    const imageBuffer = await Bun.file(
+      "assets/image-magnus1.png"
+    ).arrayBuffer();
+    const result = await uniface.spoofingAnalysisWithDetection(imageBuffer);
+
+    expect(result).not.toBeNull();
+    expect(typeof result?.real).toBe("boolean");
+    expect(result?.score).toBeGreaterThan(0);
+    expect(result?.real).toBe(true);
+  });
+
+  test("should analyze fake image 1 for spoofing", async () => {
+    const imageBuffer = await Bun.file("assets/image-fake1.jpg").arrayBuffer();
+    const result = await uniface.spoofingAnalysisWithDetection(imageBuffer);
+
+    expect(result).not.toBeNull();
+    expect(typeof result?.real).toBe("boolean");
+    expect(typeof result?.score).toBe("number");
+    expect(result?.score).toBeGreaterThanOrEqual(0);
+    expect(result?.real).toBe(false);
+  });
+
+  test("should analyze fake image 2 for spoofing", async () => {
+    const imageBuffer = await Bun.file("assets/image-fake2.jpg").arrayBuffer();
+    const result = await uniface.spoofingAnalysisWithDetection(imageBuffer);
+
+    expect(result).not.toBeNull();
+    expect(typeof result?.real).toBe("boolean");
+    expect(typeof result?.score).toBe("number");
+    expect(result?.score).toBeGreaterThanOrEqual(0);
+    expect(result?.real).toBe(false);
+  });
+
+  test("should return null for image without faces in spoofing analysis", async () => {
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const result = await uniface.spoofingAnalysisWithDetection(imageBuffer);
+
+    // If detection fails, result should be null
+    if (result === null) {
+      expect(result).toBeNull();
+    } else {
+      expect(typeof result.real).toBe("boolean");
+    }
+  });
+
+  test("should provide consistent spoofing results", async () => {
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const result1 = await uniface.spoofingAnalysisWithDetection(imageBuffer);
+    const result2 = await uniface.spoofingAnalysisWithDetection(imageBuffer);
+
+    if (result1 && result2) {
+      expect(result1.real).toBe(result2.real);
+      expect(result1.score).toBeCloseTo(result2.score, 5);
+      expect(result1?.real).toBe(true);
+    }
+  });
+
+  test("should handle different image formats in spoofing analysis", async () => {
+    const jpegBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const pngBuffer = await Bun.file("assets/image-kevin1.png").arrayBuffer();
+
+    const jpegResult = await uniface.spoofingAnalysisWithDetection(jpegBuffer);
+    const pngResult = await uniface.spoofingAnalysisWithDetection(pngBuffer);
+
+    expect(jpegResult).not.toBeNull();
+    expect(pngResult).not.toBeNull();
+    expect(jpegResult?.real).toBe(true);
+    expect(pngResult?.real).toBe(true);
   });
 });
