@@ -2,6 +2,10 @@
 
 TypeScript, type-safe, opinionated port of Python's Uniface: A comprehensive library for face detection, recognition, ~~landmark analysis, age, and gender detection~~.
 
+![ppu-uniface demo](https://raw.githubusercontent.com/PT-Perkasa-Pilar-Utama/ppu-uniface/refs/heads/main/assets/demo.png)
+
+See the demo repo: https://github.com/PT-Perkasa-Pilar-Utama/ppu-uniface-demo
+
 The code pattern is highly inspired by Uniface, however we do not offer model variations. We stick to predetermined opinionated models and functionality to achieve a minimum footprint.
 
 ## Features
