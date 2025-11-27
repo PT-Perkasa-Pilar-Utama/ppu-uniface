@@ -1,3 +1,4 @@
+import type { SpoofingResult } from "./analysis/spoofing.ana";
 import type { DetectionResult } from "./detection/base.interface";
 import type { RecognitionResult } from "./recognition/base.interface";
 import type { VerificationResult } from "./verification/base.interface";
@@ -20,6 +21,13 @@ export interface UnifaceFullResult {
     /** Recognition result for second face */
     face2: RecognitionResult;
   };
+  /** Spoofing analysis results for both faces */
+  spoofing: {
+    /** Spoofing result for first face */
+    face1: SpoofingResult | null;
+    /** Spoofing result for second face */
+    face2: SpoofingResult | null;
+  };
   /** Verification result comparing the two faces */
   verification: VerificationResult;
 }
@@ -38,9 +46,9 @@ export interface UnifaceCompactResult {
   /** Spoofing detection flags for both images */
   spoofing: {
     /** Spoofing flag for first image */
-    face1: DetectionResult["spoofing"] | null;
+    face1: boolean | null;
     /** Spoofing flag for second image */
-    face2: DetectionResult["spoofing"] | null;
+    face2: boolean | null;
   };
   /** Whether the two faces are verified as the same person */
   verified: VerificationResult["verified"];

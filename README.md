@@ -14,7 +14,7 @@ The code pattern is highly inspired by Uniface, however we do not offer model va
 2. **Face Recognition**: Using FaceNet512 (unlike Uniface, we opted for this, ported from Deepface)
 3. **Face Verification**: Using Cosine similarity (unlike Deepface which offers euclidean, euclideanL2, and angular)
 4. **Face Alignment**: Automatic face alignment based on eye landmarks
-5. **Anti-Spoofing Face**: (WIP) Following Deepface implementation
+5. **Anti-Spoofing Face**: Following Deepface implementation, using Mini-FaceNet
 
 Customization will be added as we go along. Feel free to open an issue for feature requests.
 
@@ -68,7 +68,7 @@ const result = await uniface.verify(image1, image2, { compact: false });
 ```typescript
 const detection = await uniface.detect(imageBuffer);
 console.log(detection);
-// Returns: { box, confidence, landmarks, multipleFaces, spoofing }
+// Returns: { box, confidence, landmarks, multipleFaces }
 ```
 
 ### Face Recognition Only
@@ -200,7 +200,6 @@ Main service class for face detection, recognition, and verification.
   confidence: number;
   landmarks: number[][]; // 5 points: left eye, right eye, nose, left mouth, right mouth
   multipleFaces: boolean;
-  spoofing: boolean;
 }
 ```
 
@@ -250,6 +249,10 @@ Main service class for face detection, recognition, and verification.
   recognition: {
     face1: RecognitionResult;
     face2: RecognitionResult;
+  }
+  spoofing: {
+    face1: SpoofingResult | null;
+    face2: SpoofingResult | null;
   }
   verification: VerificationResult;
 }
@@ -319,12 +322,10 @@ MIT
 - [Uniface](https://github.com/yakhyo/uniface) - Original Python implementation
 - [Deepface](https://github.com/serengil/deepface) - Face recognition framework
 - [InsightFace](https://github.com/deepinsight/insightface) - Face analysis toolkit
+- [minivision-ai](https://github.com/minivision-ai/Silent-Face-Anti-Spoofing) - Minivision-ai Silent Anti-Spoofing
 
 ## Roadmap
 
-- [ ] Anti-spoofing detection
-- [ ] Age and gender detection
-- [ ] Additional verification metrics (Euclidean, Euclidean L2)
-- [ ] Model customization options
+- [x] Anti-spoofing detection
+- [ ] Face detection customization options
 - [ ] Browser support (ONNX Web)
-- [ ] Performance optimizations

@@ -1,5 +1,10 @@
 import { Canvas, ImageProcessor } from "ppu-ocv";
 import { alignAndCropFace } from "./alignment.face";
+import {
+  SpoofingDetection,
+  type SpoofingOptions,
+  type SpoofingResult,
+} from "./analysis/spoofing.ana";
 import type {
   BaseDetection,
   DetectionModelOptions,
@@ -35,6 +40,8 @@ export interface UnifaceOptions {
   recognition?: Partial<RecognitionModelOptions>;
   /** Options for face verification */
   verification?: Partial<VerificationModelOptions>;
+  /** Options for anti spoofing face detection */
+  spoofing?: Partial<SpoofingOptions>;
 }
 
 /**
@@ -47,14 +54,17 @@ export class Uniface {
   protected recognition: BaseRecognition;
   /** Face verification method instance */
   protected verification: BaseVerification;
+  /** Face spoofing detection method instance */
+  protected spoofing: SpoofingDetection;
 
   /** Initializes Uniface service with default models */
-  constructor(options: UnifaceOptions = {}) {
+  constructor(protected options: UnifaceOptions = {}) {
     this.log("constructor", "Initializing Uniface service...");
 
     this.detection = new RetinaNetDetection(options.detection);
     this.recognition = new FaceNet512Recognition(options.recognition);
     this.verification = new CosineVerification(options.verification);
+    this.spoofing = new SpoofingDetection(options.spoofing);
 
     this.log(
       "constructor",
@@ -69,6 +79,7 @@ export class Uniface {
     await ImageProcessor.initRuntime();
     await this.detection.initialize();
     await this.recognition.initialize();
+    await this.spoofing.initialize();
 
     this.log("initialize", "All models initialized successfully");
   }
@@ -151,8 +162,8 @@ export class Uniface {
           face2: result2.detection?.multipleFaces ?? null,
         },
         spoofing: {
-          face1: result1.detection?.spoofing ?? null,
-          face2: result2.detection?.spoofing ?? null,
+          face1: result1.spoofing ? !result1.spoofing.real : null,
+          face2: result2.spoofing ? !result2.spoofing.real : null,
         },
         verified: verification.verified,
         similarity: verification.similarity,
@@ -168,6 +179,10 @@ export class Uniface {
         face1: result1.recognition,
         face2: result2.recognition,
       },
+      spoofing: {
+        face1: result1.spoofing,
+        face2: result2.spoofing,
+      },
       verification,
     };
   }
@@ -180,16 +195,22 @@ export class Uniface {
   private async processImage(imageBuffer: ArrayBuffer | Canvas): Promise<{
     detection: DetectionResult | null;
     recognition: RecognitionResult;
+    spoofing: SpoofingResult | null;
   }> {
     const detection = await this.detect(imageBuffer);
     let recognition: RecognitionResult = { embedding: new Float32Array(0) };
+    let spoofing: SpoofingResult | null = null;
 
     if (detection != null) {
       const alignedCanvas = await alignAndCropFace(imageBuffer, detection);
       recognition = await this.recognize(alignedCanvas);
+
+      if (this.options.spoofing?.enable) {
+        spoofing = await this.spoofing.analyze(alignedCanvas);
+      }
     }
 
-    return { detection, recognition };
+    return { detection, recognition, spoofing };
   }
 
   /**

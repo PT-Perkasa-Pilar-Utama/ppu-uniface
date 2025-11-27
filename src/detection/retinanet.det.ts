@@ -158,7 +158,6 @@ export class RetinaNetDetection extends BaseDetection {
       confidence,
       landmarks,
       multipleFaces,
-      spoofing: false,
     };
   }
 

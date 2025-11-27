@@ -39,8 +39,6 @@ export interface DetectionResult {
   landmarks: number[][];
   /** Whether multiple faces were detected in the image */
   multipleFaces: boolean;
-  /** Whether spoofing was detected */
-  spoofing: boolean;
 }
 
 /**
