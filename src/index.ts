@@ -31,3 +31,10 @@ export {
   type VerificationResult,
 } from "./verification/base.interface";
 export { CosineVerification } from "./verification/cosine.ver";
+
+export { BaseAnalysis } from "./analysis/base.interface";
+export {
+  SpoofingDetection,
+  type SpoofingOptions,
+  type SpoofingResult,
+} from "./analysis/spoofing.ana";
