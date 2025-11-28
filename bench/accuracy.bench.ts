@@ -25,22 +25,30 @@ const images = [
   { name: "image-haaland2.png", path: "../assets/image-haaland2.png" },
 ];
 
-console.log("Image 1, Image 2, Similarity, Verified, Ground Truth");
+console.log("============= Accuracy Benchmark ============");
 
 const loadedImages = await Promise.all(
   images.map(async (img) => {
     const file = readFileSync(join(__dirname, img.path));
     const buffer = file.buffer.slice(
       file.byteOffset,
-      file.byteOffset + file.byteLength
+      file.byteOffset + file.byteLength,
     );
 
     return {
       name: img.name,
       buffer,
     };
-  })
+  }),
 );
+
+const rows: {
+  image1: string;
+  image2: string;
+  similarity: number | string;
+  verified: boolean | string;
+  groundTruth: boolean;
+}[] = [];
 
 for (let i = 0; i < loadedImages.length; i++) {
   for (let j = i + 1; j < loadedImages.length; j++) {
@@ -49,11 +57,25 @@ for (let i = 0; i < loadedImages.length; i++) {
 
     try {
       const result = await uniFace.verify(img1.buffer, img2.buffer);
-      console.log(
-        `${img1.name}, ${img2.name}, ${result.similarity}, ${result.verified}, ${GROUND_TRUTH[img1.name + "-" + img2.name]}`
-      );
+
+      rows.push({
+        image1: img1.name,
+        image2: img2.name,
+        similarity: result.similarity,
+        verified: result.verified,
+        groundTruth: GROUND_TRUTH[img1.name + "-" + img2.name],
+      });
     } catch (error) {
-      console.log(`$${img1.name}, ${img2.name}, ERROR, ${error}`);
+      rows.push({
+        image1: img1.name,
+        image2: img2.name,
+        similarity: "ERROR",
+        verified: "ERROR",
+        groundTruth: GROUND_TRUTH[img1.name + "-" + img2.name],
+      });
     }
   }
 }
+
+console.table(rows);
+console.log("============================================");
