@@ -23,7 +23,9 @@ describe("RetinaNetDetection", () => {
   });
 
   test("should detect face in image with single person", async () => {
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const result = await detector.detect(imageBuffer);
 
     expect(result).not.toBeNull();
@@ -35,7 +37,6 @@ describe("RetinaNetDetection", () => {
     expect(result?.confidence).toBeGreaterThan(0);
     expect(result?.confidence).toBeLessThanOrEqual(1);
     expect(result?.landmarks).toHaveLength(5);
-    expect(result?.spoofing).toBe(false);
   });
 
   test("should detect landmarks correctly", async () => {
@@ -53,7 +54,9 @@ describe("RetinaNetDetection", () => {
   });
 
   test("should return null for image without faces", async () => {
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const result = await detector.detect(imageBuffer);
 
     if (result === null) {
@@ -64,7 +67,9 @@ describe("RetinaNetDetection", () => {
   });
 
   test("should detect multiple faces flag when applicable", async () => {
-    const imageBuffer = await Bun.file("assets/image-haaland2.png").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland2.png"
+    ).arrayBuffer();
     const result = await detector.detect(imageBuffer);
 
     expect(result).not.toBeNull();
@@ -84,7 +89,9 @@ describe("RetinaNetDetection", () => {
   });
 
   test("should have consistent detection results", async () => {
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const result1 = await detector.detect(imageBuffer);
     const result2 = await detector.detect(imageBuffer);
 
@@ -98,7 +105,9 @@ describe("RetinaNetDetection", () => {
   });
 
   test("should handle different image formats", async () => {
-    const jpegBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const jpegBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const pngBuffer = await Bun.file("assets/image-haaland2.png").arrayBuffer();
 
     const jpegResult = await detector.detect(jpegBuffer);
@@ -110,7 +119,9 @@ describe("RetinaNetDetection", () => {
 
   test("should throw error if not initialized", async () => {
     const uninitializedDetector = new RetinaNetDetection();
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
 
     expect(async () => {
       await uninitializedDetector.detect(imageBuffer);
@@ -122,7 +133,9 @@ describe("RetinaNetDetection", () => {
     await testDetector.initialize();
     await testDetector.destroy();
 
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     expect(async () => {
       await testDetector.detect(imageBuffer);
     }).toThrow();

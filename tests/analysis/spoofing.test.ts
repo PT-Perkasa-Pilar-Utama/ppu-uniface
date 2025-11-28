@@ -1,14 +1,20 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { alignAndCropFace, RetinaNetDetection } from "../../src";
 import { SpoofingDetection } from "../../src/analysis/spoofing.ana";
 import { LoggerConfig } from "../../src/logger";
 
 describe("SpoofingDetection", () => {
   let spoofing: SpoofingDetection;
+  let detection: RetinaNetDetection;
 
   beforeAll(async () => {
     LoggerConfig.verbose = false;
+
     spoofing = new SpoofingDetection();
+    detection = new RetinaNetDetection();
+
     await spoofing.initialize();
+    await detection.initialize();
   });
 
   afterAll(async () => {
@@ -18,6 +24,7 @@ describe("SpoofingDetection", () => {
   test("should initialize successfully", async () => {
     const testSpoofing = new SpoofingDetection();
     await testSpoofing.initialize();
+
     expect(testSpoofing).toBeDefined();
     await testSpoofing.destroy();
   });
@@ -31,6 +38,29 @@ describe("SpoofingDetection", () => {
     expect(result).toBeDefined();
     expect(typeof result.real).toBe("boolean");
     expect(typeof result.score).toBe("number");
+
+    expect(result.score).toBeGreaterThanOrEqual(0);
+    expect(result.score).toBeLessThanOrEqual(1);
+    expect(result.real).toBe(true);
+  });
+
+  test("should detect real face in image via facial area", async () => {
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const face = await detection.detect(imageBuffer);
+    const crop = await alignAndCropFace(imageBuffer, face!);
+
+    const result = await spoofing.analyze(imageBuffer, {
+      x: 0,
+      y: 0,
+      width: crop.width,
+      height: crop.height,
+    });
+    expect(result).toBeDefined();
+    expect(typeof result.real).toBe("boolean");
+    expect(typeof result.score).toBe("number");
+
     expect(result.score).toBeGreaterThanOrEqual(0);
     expect(result.score).toBeLessThanOrEqual(1);
     expect(result.real).toBe(true);
@@ -54,6 +84,46 @@ describe("SpoofingDetection", () => {
     expect(result).toBeDefined();
     expect(result.real).toBe(true);
     expect(result.score).toBeGreaterThan(0);
+  });
+
+  test("should analyze fake image 1 for spoofing via facial area", async () => {
+    const imageBuffer = await Bun.file("assets/image-fake1.jpg").arrayBuffer();
+    const face = await detection.detect(imageBuffer);
+    const crop = await alignAndCropFace(imageBuffer, face!);
+
+    const result = await spoofing.analyze(imageBuffer, {
+      x: 0,
+      y: 0,
+      width: crop.width,
+      height: crop.height,
+    });
+
+    expect(result).toBeDefined();
+    expect(typeof result.real).toBe("boolean");
+    expect(typeof result.score).toBe("number");
+    expect(result.score).toBeGreaterThanOrEqual(0);
+    expect(result.score).toBeLessThanOrEqual(1);
+    expect(result.real).toBe(false);
+  });
+
+  test("should analyze fake image 2 for spoofing via facial area", async () => {
+    const imageBuffer = await Bun.file("assets/image-fake2.jpg").arrayBuffer();
+    const face = await detection.detect(imageBuffer);
+    const crop = await alignAndCropFace(imageBuffer, face!);
+
+    const result = await spoofing.analyze(imageBuffer, {
+      x: 0,
+      y: 0,
+      width: crop.width,
+      height: crop.height,
+    });
+
+    expect(result).toBeDefined();
+    expect(typeof result.real).toBe("boolean");
+    expect(typeof result.score).toBe("number");
+    expect(result.score).toBeGreaterThanOrEqual(0);
+    expect(result.score).toBeLessThanOrEqual(1);
+    expect(result.real).toBe(false);
   });
 
   test("should analyze fake image 1 for spoofing", async () => {

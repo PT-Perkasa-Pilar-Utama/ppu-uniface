@@ -206,7 +206,12 @@ export class Uniface {
       recognition = await this.recognize(alignedCanvas);
 
       if (this.options.spoofing?.enable) {
-        spoofing = await this.spoofing.analyze(alignedCanvas);
+        spoofing = await this.spoofing.analyze(imageBuffer, {
+          x: 0,
+          y: 0,
+          width: alignedCanvas.width,
+          height: alignedCanvas.height,
+        });
       }
     }
 
@@ -232,9 +237,7 @@ export class Uniface {
    * @param image - Cropped facial area image as ArrayBuffer or Canvas
    * @returns Spoofing analysis result
    */
-  async spoofingAnalysis(
-    image: ArrayBuffer | Canvas
-  ): Promise<SpoofingResult> {
+  async spoofingAnalysis(image: ArrayBuffer | Canvas): Promise<SpoofingResult> {
     const result = await this.spoofing.analyze(image);
     return result;
   }
@@ -253,12 +256,9 @@ export class Uniface {
       return null;
     }
 
-    const alignedCanvas = await alignAndCropFace(image, detection);
-    const result = await this.spoofing.analyze(alignedCanvas);
-
+    const result = await this.spoofing.analyze(image, detection.box);
     return result;
   }
-
 
   /**
    * Logs a message using the logger utility

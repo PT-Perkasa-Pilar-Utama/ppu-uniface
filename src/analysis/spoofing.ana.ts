@@ -78,10 +78,15 @@ export class SpoofingDetection extends BaseAnalysis {
   }
 
   /**
-   * Analyze whether a face is spoofed like a photo of a photo or a display from a phone etc.
-   * @param image The facial area of the image
+   * Analyze whether a face is spoofed
+   * @param image The image (full image recommended)
+   * @param facialArea Optional facial bounding box {x, y, width, height}.
+   *                   If not provided, uses the entire image as the facial area.
    */
-  async analyze(image: ArrayBuffer | Canvas): Promise<SpoofingResult> {
+  async analyze(
+    image: ArrayBuffer | Canvas,
+    facialArea?: { x: number; y: number; width: number; height: number }
+  ): Promise<SpoofingResult> {
     if (!this.isInitialized)
       throw Error(`${this.className} session was not initialized`);
 
@@ -90,27 +95,19 @@ export class SpoofingDetection extends BaseAnalysis {
         ? await ImageProcessor.prepareCanvas(image)
         : image;
 
-    // Crop and preprocess for first model (scale 2.7)
-    const firstTensor = this.preprocess(canvas, 2.7, 80, 80);
+    const bbox = facialArea || {
+      x: Math.floor(canvas.width / 2 - canvas.width / 8),
+      y: Math.floor(canvas.height / 2 - canvas.height / 8),
+      width: Math.floor(canvas.width / 4),
+      height: Math.floor(canvas.height / 4),
+    };
 
-    // Crop and preprocess for second model (scale 4.0)
-    const secondTensor = this.preprocess(canvas, 4.0, 80, 80);
+    const [firstOutput, secondOutput] = await Promise.all([
+      this.preprocessPromise(canvas, bbox, 2.7, 80, 80, this.firstSession!),
+      this.preprocessPromise(canvas, bbox, 4.0, 80, 80, this.secondSession!),
+    ]);
 
-    // Run inference on both models
-    const firstOutput = await this.inference(
-      this.firstSession!,
-      firstTensor,
-      [1, 3, 80, 80]
-    );
-    const secondOutput = await this.inference(
-      this.secondSession!,
-      secondTensor,
-      [1, 3, 80, 80]
-    );
-
-    // Postprocess and combine results
     const result = this.postprocess(firstOutput, secondOutput);
-
     this.log(
       "analyze",
       `Spoofing analysis: real=${result.real}, score=${result.score.toFixed(3)}`
@@ -120,23 +117,44 @@ export class SpoofingDetection extends BaseAnalysis {
   }
 
   /**
-   * Preprocess image by cropping with scale and resizing
-   * @param canvas Input canvas
+   * Preprocess image by cropping from original image with scale and resizing
+   * @param canvas Original full image canvas
+   * @param bbox Facial bounding box
    * @param scale Scale factor for cropping
    * @param outW Output width
    * @param outH Output height
    * @returns Preprocessed tensor
    */
-  protected preprocess(
+  protected async preprocessPromise(
     canvas: Canvas,
+    bbox: { x: number; y: number; width: number; height: number },
+    scale: number,
+    outW: number,
+    outH: number,
+    session: ort.InferenceSession
+  ): Promise<ort.InferenceSession.OnnxValueMapType> {
+    const tensor = this.preprocessWithCrop(canvas, bbox, scale, outW, outH);
+    const output = await this.inference(session!, tensor, [1, 3, 80, 80]);
+    return output;
+  }
+
+  /**
+   * Preprocess image by cropping from original image with scale and resizing
+   * @param canvas Original full image canvas
+   * @param bbox Facial bounding box
+   * @param scale Scale factor for cropping
+   * @param outW Output width
+   * @param outH Output height
+   * @returns Preprocessed tensor
+   */
+  protected preprocessWithCrop(
+    canvas: Canvas,
+    bbox: { x: number; y: number; width: number; height: number },
     scale: number,
     outW: number,
     outH: number
   ): Float32Array {
     const { width: srcW, height: srcH } = canvas;
-
-    // Get the entire image as bounding box
-    const bbox = { x: 0, y: 0, width: srcW, height: srcH };
 
     // Calculate new box with scale
     const newBox = this.getNewBox(srcW, srcH, bbox, scale);
@@ -158,20 +176,72 @@ export class SpoofingDetection extends BaseAnalysis {
     // Resize to target size
     let resizedCanvas = tempCanvas;
     if (newBox.width !== outW || newBox.height !== outH) {
-      const processor = new ImageProcessor(tempCanvas);
-      resizedCanvas = processor.resize({ width: outW, height: outH }).toCanvas();
-      processor.destroy();
+      const targetCanvas = createCanvas(outW, outH);
+      const targetCtx = targetCanvas.getContext("2d");
+      targetCtx.imageSmoothingEnabled = true;
+      targetCtx.imageSmoothingQuality = "high";
+      targetCtx.drawImage(
+        tempCanvas,
+        0,
+        0,
+        newBox.width,
+        newBox.height,
+        0,
+        0,
+        outW,
+        outH
+      );
+      resizedCanvas = targetCanvas;
     }
 
-    // Convert to tensor in CHW format (channels, height, width)
+    // Convert to tensor
+    return this.canvasToTensor(resizedCanvas, outW, outH);
+  }
+
+  /**
+   * Simple preprocess by resizing only (for pre-cropped faces)
+   * @param canvas Input canvas
+   * @param outW Output width
+   * @param outH Output height
+   * @returns Preprocessed tensor
+   */
+  protected preprocess(
+    canvas: Canvas,
+    outW: number,
+    outH: number
+  ): Float32Array {
+    const { width, height } = canvas;
+
+    // Resize to target size
+    let resizedCanvas = canvas;
+    if (width !== outW || height !== outH) {
+      const targetCanvas = createCanvas(outW, outH);
+      const targetCtx = targetCanvas.getContext("2d");
+      targetCtx.imageSmoothingEnabled = true;
+      targetCtx.imageSmoothingQuality = "high";
+      targetCtx.drawImage(canvas, 0, 0, width, height, 0, 0, outW, outH);
+      resizedCanvas = targetCanvas;
+    }
+
+    return this.canvasToTensor(resizedCanvas, outW, outH);
+  }
+
+  /**
+   * Convert canvas to tensor in CHW format
+   */
+  protected canvasToTensor(
+    canvas: Canvas,
+    width: number,
+    height: number
+  ): Float32Array {
     const channels = 3;
-    const tensor = new Float32Array(channels * outH * outW);
+    const tensor = new Float32Array(channels * height * width);
 
-    const resizedCtx = resizedCanvas.getContext("2d");
-    const imageData = resizedCtx.getImageData(0, 0, outW, outH).data;
+    const ctx = canvas.getContext("2d");
+    const imageData = ctx.getImageData(0, 0, width, height).data;
 
-    const totalPixels = outH * outW;
-    const stride = outH * outW;
+    const totalPixels = height * width;
+    const stride = height * width;
 
     let ptr = 0;
     for (let i = 0; i < totalPixels; i++) {
@@ -180,10 +250,10 @@ export class SpoofingDetection extends BaseAnalysis {
       const b = imageData[ptr++];
       ptr++; // skip alpha
 
-      // Store in CHW format (RGB channels)
-      tensor[i] = r; // R channel
+      // Store in CHW format (BGR channels) - Match OpenCV format from reference
+      tensor[i] = b; // B channel
       tensor[stride + i] = g; // G channel
-      tensor[2 * stride + i] = b; // B channel
+      tensor[2 * stride + i] = r; // R channel
     }
 
     return tensor;
@@ -240,10 +310,10 @@ export class SpoofingDetection extends BaseAnalysis {
     }
 
     return {
-      x: Math.round(leftTopX),
-      y: Math.round(leftTopY),
-      width: Math.round(rightBottomX - leftTopX),
-      height: Math.round(rightBottomY - leftTopY),
+      x: Math.floor(leftTopX),
+      y: Math.floor(leftTopY),
+      width: Math.floor(rightBottomX) - Math.floor(leftTopX) + 1,
+      height: Math.floor(rightBottomY) - Math.floor(leftTopY) + 1,
     };
   }
 
