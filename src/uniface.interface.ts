@@ -1,5 +1,8 @@
 import type { SpoofingResult } from "./analysis/spoofing.ana";
-import type { DetectionResult } from "./detection/base.interface";
+import type {
+  DetectOptions,
+  DetectionResult,
+} from "./detection/base.interface";
 import type { RecognitionResult } from "./recognition/base.interface";
 import type { VerificationResult } from "./verification/base.interface";
 
@@ -64,4 +67,6 @@ export interface UnifaceVerifyOptions {
    * @default true
    * */
   compact: boolean;
+  /** Optional detection options to override model-level defaults */
+  detection?: DetectOptions;
 }

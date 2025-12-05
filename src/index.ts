@@ -13,6 +13,7 @@ export { CACHE_DIR, GITHUB_BASE_URL } from "./constant";
 
 export {
   BaseDetection,
+  type DetectOptions,
   type DetectionModelOptions,
   type DetectionResult,
 } from "./detection/base.interface";

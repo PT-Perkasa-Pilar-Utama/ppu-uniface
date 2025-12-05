@@ -65,12 +65,41 @@ const result = await uniface.verify(image1, image2, { compact: false });
 // Returns: { detection, recognition, verification }
 ```
 
+### Verification with Custom Detection Threshold
+
+```typescript
+// Override detection threshold for both faces in verification
+const result = await uniface.verify(image1, image2, {
+  compact: true,
+  detection: {
+    threshold: { confidence: 0.5 },
+  },
+});
+```
+
 ### Face Detection Only
 
 ```typescript
 const detection = await uniface.detect(imageBuffer);
 console.log(detection);
 // Returns: { box, confidence, landmarks, multipleFaces }
+```
+
+#### With Custom Detection Threshold
+
+```typescript
+// Override confidence threshold for this detection call
+const detection = await uniface.detect(imageBuffer, {
+  threshold: { confidence: 0.5 },
+});
+
+// Override both thresholds
+const detection = await uniface.detect(imageBuffer, {
+  threshold: {
+    confidence: 0.8,
+    nonMaximumSuppression: 0.3,
+  },
+});
 ```
 
 ### Face Recognition Only
@@ -89,7 +118,7 @@ const face2 = await uniface.recognize(image2);
 
 const verification = await uniface.verifyEmbedding(
   face1.embedding,
-  face2.embedding,
+  face2.embedding
 );
 console.log(verification);
 // Returns: { similarity, verified, threshold }
@@ -138,6 +167,8 @@ You can customize the models by passing options to the `Uniface` constructor or 
 
 ### Detection Options (`DetectionModelOptions`)
 
+Model-level options configured during initialization:
+
 | Option                            | Type               | Default      | Description                                 |
 | --------------------------------- | ------------------ | ------------ | ------------------------------------------- |
 | `threshold.confidence`            | `number`           | `0.7`        | Minimum confidence score for face detection |
@@ -145,6 +176,15 @@ You can customize the models by passing options to the `Uniface` constructor or 
 | `topK.preNonMaximumSuppression`   | `number`           | `5000`       | Maximum detections before NMS               |
 | `topK.postNonMaxiumSuppression`   | `number`           | `750`        | Maximum detections after NMS                |
 | `size.input`                      | `[number, number]` | `[320, 320]` | Input dimensions [height, width]            |
+
+### Method-Level Detection Options (`DetectOptions`)
+
+Override detection thresholds on a per-call basis (available for `detect()`, `verify()`, `verifyWithDetections()`, and `spoofingAnalysisWithDetection()`):
+
+| Option                            | Type     | Default              | Description                                 |
+| --------------------------------- | -------- | -------------------- | ------------------------------------------- |
+| `threshold.confidence`            | `number` | Model-level or `0.7` | Minimum confidence score for face detection |
+| `threshold.nonMaximumSuppression` | `number` | Model-level or `0.4` | IoU threshold for non-maximum suppression   |
 
 ### Recognition Options (`RecognitionModelOptions`)
 
@@ -193,13 +233,26 @@ Main service class for face detection, recognition, and verification.
 #### Methods
 
 - `initialize(): Promise<void>` - Initializes all models
-- `detect(image: ArrayBuffer | Canvas): Promise<DetectionResult | null>` - Detects face in image
+- `detect(image: ArrayBuffer | Canvas, options?: DetectOptions): Promise<DetectionResult | null>` - Detects face in image with optional threshold overrides
 - `recognize(image: ArrayBuffer | Canvas): Promise<RecognitionResult>` - Generates face embedding
-- `verify(image1, image2, options?): Promise<UnifaceFullResult | UnifaceCompactResult>` - Verifies if two images contain the same person
+- `verify(image1, image2, options?: UnifaceVerifyOptions): Promise<UnifaceFullResult | UnifaceCompactResult>` - Verifies if two images contain the same person (supports detection threshold overrides via `options.detection`)
+- `verifyWithDetections(input1, input2, options?: UnifaceVerifyOptions): Promise<UnifaceFullResult | UnifaceCompactResult>` - Verifies with pre-computed detections (supports detection threshold overrides via `options.detection` for raw images)
 - `verifyEmbedding(embedding1, embedding2): Promise<VerificationResult>` - Compares two embeddings directly
+- `spoofingAnalysisWithDetection(image: ArrayBuffer | Canvas, options?: DetectOptions): Promise<SpoofingResult | null>` - Analyzes spoofing with automatic detection and optional threshold overrides
 - `destroy(): Promise<void>` - Releases all model resources
 
 ### Types
+
+#### `DetectOptions`
+
+```typescript
+{
+  threshold?: {
+    confidence?: number; // Default: 0.7
+    nonMaximumSuppression?: number; // Default: 0.4
+  };
+}
+```
 
 #### `DetectionResult`
 
@@ -227,6 +280,15 @@ Main service class for face detection, recognition, and verification.
   similarity: number; // 0-1
   verified: boolean;
   threshold: number; // Default: 0.7
+}
+```
+
+#### `UnifaceVerifyOptions`
+
+```typescript
+{
+  compact: boolean; // Default: true
+  detection?: DetectOptions; // Optional detection threshold overrides
 }
 ```
 
@@ -336,5 +398,5 @@ MIT
 ## Roadmap
 
 - [x] Anti-spoofing detection
-- [ ] Face detection customization options
+- [x] Face detection customization options
 - [ ] Browser support (ONNX Web)

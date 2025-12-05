@@ -3,6 +3,7 @@ import { Canvas, ImageProcessor } from "ppu-ocv";
 import { GITHUB_BASE_URL } from "../constant";
 import {
   BaseDetection,
+  type DetectOptions,
   type DetectionModelOptions,
   type DetectionResult,
 } from "./base.interface";
@@ -73,8 +74,12 @@ export class RetinaNetDetection extends BaseDetection {
   /**
    * Detect face in an image, prioritize face that is largest
    * @param image
+   * @param options - Optional detection options
    */
-  async detect(image: ArrayBuffer | Canvas): Promise<DetectionResult | null> {
+  async detect(
+    image: ArrayBuffer | Canvas,
+    options: DetectOptions = {}
+  ): Promise<DetectionResult | null> {
     if (!this.isInitialized)
       throw Error(`${this.className} session was not initialized`);
 
@@ -97,7 +102,18 @@ export class RetinaNetDetection extends BaseDetection {
 
     const tensor = this.preprocess(inputCanvas, targetH, targetW);
     const outputs = await this.inference(tensor, [targetH, targetW]);
-    const result = this.postprocess(outputs);
+
+    // Merge method-level options with model-level defaults
+    const threshold = {
+      confidence:
+        options.threshold?.confidence ??
+        this.detectionOptions.threshold.confidence,
+      nonMaximumSuppression:
+        options.threshold?.nonMaximumSuppression ??
+        this.detectionOptions.threshold.nonMaximumSuppression,
+    };
+
+    const result = this.postprocessWithThreshold(outputs, threshold);
     const numDetections = result.boxes.length / 4;
 
     if (numDetections === 0) {
@@ -208,6 +224,17 @@ export class RetinaNetDetection extends BaseDetection {
     scores: Float32Array;
     landmarks: Float32Array;
   } {
+    return this.postprocessWithThreshold(outputs, this.detectionOptions.threshold);
+  }
+
+  protected postprocessWithThreshold(
+    outputs: ort.InferenceSession.OnnxValueMapType,
+    threshold: { confidence: number; nonMaximumSuppression: number }
+  ): {
+    boxes: Float32Array;
+    scores: Float32Array;
+    landmarks: Float32Array;
+  } {
     const { loc, conf, landmarks } = outputs;
 
     const locData = loc!.data as Float32Array;
@@ -216,11 +243,11 @@ export class RetinaNetDetection extends BaseDetection {
 
     const numPriors = conf!.dims[1]!;
 
-    const threshold = this.detectionOptions.threshold.confidence;
+    const confidenceThreshold = threshold.confidence;
     const passingIndices: number[] = [];
 
     for (let i = 0; i < numPriors; i++) {
-      if (confData[i * 2 + 1]! > threshold) {
+      if (confData[i * 2 + 1]! > confidenceThreshold) {
         passingIndices.push(i);
       }
     }
@@ -275,7 +302,8 @@ export class RetinaNetDetection extends BaseDetection {
     const result = this.applyNMSAndTopK(
       boxesDecoded,
       scoresSubset,
-      landmarksDecoded
+      landmarksDecoded,
+      threshold.nonMaximumSuppression
     );
 
     return result;
@@ -284,7 +312,8 @@ export class RetinaNetDetection extends BaseDetection {
   protected applyNMSAndTopK(
     filteredBoxesArray: Float32Array,
     filteredScoresArray: Float32Array,
-    filteredLandmarksArray: Float32Array
+    filteredLandmarksArray: Float32Array,
+    nmsThreshold: number
   ): { boxes: Float32Array; scores: Float32Array; landmarks: Float32Array } {
     const numDetections = filteredScoresArray.length;
 
@@ -311,7 +340,7 @@ export class RetinaNetDetection extends BaseDetection {
     const keep = this.nonMaximumSuppression(
       detections,
       numDetections,
-      this.detectionOptions.threshold.nonMaximumSuppression
+      nmsThreshold
     );
 
     const topK = Math.min(

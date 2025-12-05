@@ -7,6 +7,7 @@ import {
 } from "./analysis/spoofing.ana";
 import type {
   BaseDetection,
+  DetectOptions,
   DetectionModelOptions,
   DetectionResult,
 } from "./detection/base.interface";
@@ -102,10 +103,14 @@ export class Uniface {
   /**
    * Detects face in an image
    * @param image - Input image as ArrayBuffer or Canvas
+   * @param options - Optional detection options
    * @returns Detection result or null if no face found
    */
-  async detect(image: ImageInput): Promise<DetectionResult | null> {
-    const result = await this.detection.detect(image);
+  async detect(
+    image: ImageInput,
+    options?: DetectOptions
+  ): Promise<DetectionResult | null> {
+    const result = await this.detection.detect(image, options);
     return result;
   }
 
@@ -160,8 +165,8 @@ export class Uniface {
     options: UnifaceVerifyOptions = { compact: true }
   ): Promise<UnifaceFullResult | UnifaceCompactResult> {
     const [result1, result2] = await Promise.all([
-      this.processImage(image1),
-      this.processImage(image2),
+      this.processImage(image1, options.detection),
+      this.processImage(image2, options.detection),
     ]);
 
     return this.buildVerificationResult(result1, result2, options);
@@ -208,8 +213,8 @@ export class Uniface {
     options: UnifaceVerifyOptions = { compact: true }
   ): Promise<UnifaceFullResult | UnifaceCompactResult> {
     const [result1, result2] = await Promise.all([
-      this.processImageInput(input1),
-      this.processImageInput(input2),
+      this.processImageInput(input1, options.detection),
+      this.processImageInput(input2, options.detection),
     ]);
 
     return this.buildVerificationResult(result1, result2, options);
@@ -219,12 +224,13 @@ export class Uniface {
    * Processes input that can be either raw image or detected input
    */
   private async processImageInput(
-    input: DetectedInput | ImageInput
+    input: DetectedInput | ImageInput,
+    detectOptions?: DetectOptions
   ): Promise<ProcessedImage> {
     if (this.isDetectedInput(input)) {
       return this.processImageWithDetection(input.image, input.detection);
     }
-    return this.processImage(input);
+    return this.processImage(input, detectOptions);
   }
 
   /**
@@ -244,8 +250,11 @@ export class Uniface {
   /**
    * Processes an image through full pipeline (detection + recognition + spoofing)
    */
-  private async processImage(imageBuffer: ImageInput): Promise<ProcessedImage> {
-    const detection = await this.detect(imageBuffer);
+  private async processImage(
+    imageBuffer: ImageInput,
+    detectOptions?: DetectOptions
+  ): Promise<ProcessedImage> {
+    const detection = await this.detect(imageBuffer, detectOptions);
     return this.processImageWithDetection(imageBuffer, detection);
   }
 
@@ -348,12 +357,14 @@ export class Uniface {
   /**
    * Analyzes if an image contains a spoofed face (with automatic detection and cropping)
    * @param image - Full image as ArrayBuffer or Canvas
+   * @param options - Optional detection options
    * @returns Spoofing analysis result or null if no face detected
    */
   async spoofingAnalysisWithDetection(
-    image: ImageInput
+    image: ImageInput,
+    options?: DetectOptions
   ): Promise<SpoofingResult | null> {
-    const detection = await this.detect(image);
+    const detection = await this.detect(image, options);
 
     if (detection == null) {
       return null;

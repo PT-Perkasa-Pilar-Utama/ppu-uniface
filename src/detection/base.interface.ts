@@ -28,6 +28,19 @@ export interface DetectionModelOptions {
 }
 
 /**
+ * Options for detect method
+ */
+export interface DetectOptions {
+  /** Threshold values for detection */
+  threshold?: {
+    /** Minimum confidence score for face detection (default: 0.7) */
+    confidence?: number;
+    /** IoU threshold for non-maximum suppression (default: 0.4) */
+    nonMaximumSuppression?: number;
+  };
+}
+
+/**
  * Face detection result
  */
 export interface DetectionResult {
@@ -60,9 +73,13 @@ export abstract class BaseDetection extends Base {
   /**
    * Detects faces in an image
    * @param image - Input image as ArrayBuffer or Canvas
+   * @param options - Optional detection options
    * @returns Detection result or null if no face detected
    */
-  abstract detect(image: ArrayBuffer | Canvas): Promise<DetectionResult | null>;
+  abstract detect(
+    image: ArrayBuffer | Canvas,
+    options?: DetectOptions
+  ): Promise<DetectionResult | null>;
 
   /**
    * Preprocesses image for model inference
