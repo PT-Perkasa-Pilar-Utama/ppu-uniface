@@ -19,8 +19,12 @@ export interface SpoofingOptions {
 export interface SpoofingResult {
   /** Whether the image is real or fake */
   real: boolean;
-  /** The given score from analysis */
+  /** The given score from analysis (confidence of the predicted label) */
   score: number;
+  /** Probability of the image being real (0-1) */
+  realness: number;
+  /** Probability of the image being fake (0-1) */
+  fakeness: number;
 }
 
 export class SpoofingDetection extends BaseAnalysis {
@@ -110,7 +114,9 @@ export class SpoofingDetection extends BaseAnalysis {
     const result = this.postprocess(firstOutput, secondOutput);
     this.log(
       "analyze",
-      `Spoofing analysis: real=${result.real}, score=${result.score.toFixed(3)}`
+      `Spoofing analysis: real=${result.real}, score=${result.score.toFixed(
+        3
+      )}, realness=${result.realness.toFixed(3)}`
     );
 
     return result;
@@ -155,11 +161,8 @@ export class SpoofingDetection extends BaseAnalysis {
     outH: number
   ): Float32Array {
     const { width: srcW, height: srcH } = canvas;
-
-    // Calculate new box with scale
     const newBox = this.getNewBox(srcW, srcH, bbox, scale);
 
-    // Crop the image
     const ctx = canvas.getContext("2d");
     const croppedImageData = ctx.getImageData(
       newBox.x,
@@ -168,7 +171,6 @@ export class SpoofingDetection extends BaseAnalysis {
       newBox.height
     );
 
-    // Create a temporary canvas for the cropped image
     const tempCanvas = createCanvas(newBox.width, newBox.height);
     const tempCtx = tempCanvas.getContext("2d");
     tempCtx.putImageData(croppedImageData, 0, 0);
@@ -194,7 +196,6 @@ export class SpoofingDetection extends BaseAnalysis {
       resizedCanvas = targetCanvas;
     }
 
-    // Convert to tensor
     return this.canvasToTensor(resizedCanvas, outW, outH);
   }
 
@@ -212,7 +213,6 @@ export class SpoofingDetection extends BaseAnalysis {
   ): Float32Array {
     const { width, height } = canvas;
 
-    // Resize to target size
     let resizedCanvas = canvas;
     if (width !== outW || height !== outH) {
       const targetCanvas = createCanvas(outW, outH);
@@ -248,12 +248,11 @@ export class SpoofingDetection extends BaseAnalysis {
       const r = imageData[ptr++];
       const g = imageData[ptr++];
       const b = imageData[ptr++];
-      ptr++; // skip alpha
+      ptr++;
 
-      // Store in CHW format (BGR channels) - Match OpenCV format from reference
-      tensor[i] = b; // B channel
-      tensor[stride + i] = g; // G channel
-      tensor[2 * stride + i] = r; // R channel
+      tensor[i] = b;
+      tensor[stride + i] = g;
+      tensor[2 * stride + i] = r;
     }
 
     return tensor;
@@ -291,7 +290,6 @@ export class SpoofingDetection extends BaseAnalysis {
     let rightBottomX = centerX + newWidth / 2;
     let rightBottomY = centerY + newHeight / 2;
 
-    // Adjust bounds to stay within image
     if (leftTopX < 0) {
       rightBottomX -= leftTopX;
       leftTopX = 0;
@@ -333,7 +331,6 @@ export class SpoofingDetection extends BaseAnalysis {
     const inputName = session.inputNames[0]!;
 
     feeds[inputName] = new ort.Tensor("float32", tensor, shape);
-
     const result = await session.run(feeds);
     return result;
   }
@@ -360,40 +357,45 @@ export class SpoofingDetection extends BaseAnalysis {
     firstOutput: ort.InferenceSession.OnnxValueMapType,
     secondOutput: ort.InferenceSession.OnnxValueMapType
   ): SpoofingResult {
-    // Get output tensors
     const firstOutputName = this.firstSession!.outputNames[0]!;
     const secondOutputName = this.secondSession!.outputNames[0]!;
 
     const firstLogits = firstOutput[firstOutputName]!.data as Float32Array;
     const secondLogits = secondOutput[secondOutputName]!.data as Float32Array;
 
-    // Apply softmax to both outputs
     const firstProbs = this.softmax(firstLogits);
     const secondProbs = this.softmax(secondLogits);
 
-    // Combine predictions (sum of probabilities)
     const prediction = new Float32Array(3);
     for (let i = 0; i < 3; i++) {
       prediction[i] = firstProbs[i] + secondProbs[i];
     }
 
-    // Get the label with highest probability
+    const probabilities = new Float32Array(3);
+    for (let i = 0; i < 3; i++) {
+      probabilities[i] = prediction[i] / 2;
+    }
+
     let maxIdx = 0;
-    let maxVal = prediction[0];
+    let maxVal = probabilities[0];
     for (let i = 1; i < 3; i++) {
-      if (prediction[i] > maxVal) {
-        maxVal = prediction[i];
+      if (probabilities[i] > maxVal) {
+        maxVal = probabilities[i];
         maxIdx = i;
       }
     }
 
-    // Label 1 means real, others mean fake
     const isReal = maxIdx === 1;
-    const score = prediction[maxIdx] / 2; // Average of two models
+    const realness = probabilities[1];
+
+    const fakeness = probabilities[0] + probabilities[2];
+    const score = isReal ? realness : fakeness;
 
     return {
       real: isReal,
       score: score,
+      realness: realness,
+      fakeness: fakeness,
     };
   }
 

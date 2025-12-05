@@ -89,7 +89,7 @@ const face2 = await uniface.recognize(image2);
 
 const verification = await uniface.verifyEmbedding(
   face1.embedding,
-  face2.embedding
+  face2.embedding,
 );
 console.log(verification);
 // Returns: { similarity, verified, threshold }
@@ -158,6 +158,13 @@ You can customize the models by passing options to the `Uniface` constructor or 
 | Option      | Type     | Default | Description                           |
 | ----------- | -------- | ------- | ------------------------------------- |
 | `threshold` | `number` | `0.7`   | Similarity threshold for verification |
+
+### Spoofing Options (`VerificationModelOptions`)
+
+| Option      | Type      | Default | Description                           |
+| ----------- | --------- | ------- | ------------------------------------- |
+| `threshold` | `number`  | `0.5`   | Similarity threshold for verification |
+| `enable`    | `boolean` | `true`  | Enable the anti-spoofing analysis     |
 
 ### Example with Custom Options
 
