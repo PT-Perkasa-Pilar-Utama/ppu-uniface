@@ -31,10 +31,12 @@ export abstract class BaseVerification extends Base {
    * Compares two face embeddings
    * @param embedding1 - First face embedding
    * @param embedding2 - Second face embedding
+   * @param threshold - Optional threshold to override model-level default
    * @returns Verification result with similarity and verification status
    */
   abstract compare(
     embedding1: Float32Array,
-    embedding2: Float32Array
+    embedding2: Float32Array,
+    threshold?: number
   ): VerificationResult;
 }

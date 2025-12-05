@@ -77,6 +77,23 @@ const result = await uniface.verify(image1, image2, {
 });
 ```
 
+### Verification with Custom Verification Threshold
+
+```typescript
+// Override verification threshold for this specific verification call
+const result = await uniface.verify(image1, image2, {
+  compact: true,
+  threshold: 0.85, // Falls back to model-level threshold (0.7) if not provided
+});
+
+// Or with direct embedding comparison
+const verification = await uniface.verifyEmbedding(
+  face1.embedding,
+  face2.embedding,
+  0.85 // Optional threshold override
+);
+```
+
 ### Face Detection Only
 
 ```typescript
@@ -235,9 +252,9 @@ Main service class for face detection, recognition, and verification.
 - `initialize(): Promise<void>` - Initializes all models
 - `detect(image: ArrayBuffer | Canvas, options?: DetectOptions): Promise<DetectionResult | null>` - Detects face in image with optional threshold overrides
 - `recognize(image: ArrayBuffer | Canvas): Promise<RecognitionResult>` - Generates face embedding
-- `verify(image1, image2, options?: UnifaceVerifyOptions): Promise<UnifaceFullResult | UnifaceCompactResult>` - Verifies if two images contain the same person (supports detection threshold overrides via `options.detection`)
-- `verifyWithDetections(input1, input2, options?: UnifaceVerifyOptions): Promise<UnifaceFullResult | UnifaceCompactResult>` - Verifies with pre-computed detections (supports detection threshold overrides via `options.detection` for raw images)
-- `verifyEmbedding(embedding1, embedding2): Promise<VerificationResult>` - Compares two embeddings directly
+- `verify(image1, image2, options?: UnifaceVerifyOptions): Promise<UnifaceFullResult | UnifaceCompactResult>` - Verifies if two images contain the same person (supports detection and verification threshold overrides via `options.detection` and `options.threshold`)
+- `verifyWithDetections(input1, input2, options?: UnifaceVerifyOptions): Promise<UnifaceFullResult | UnifaceCompactResult>` - Verifies with pre-computed detections (supports detection and verification threshold overrides via `options.detection` and `options.threshold`)
+- `verifyEmbedding(embedding1, embedding2, threshold?: number): Promise<VerificationResult>` - Compares two embeddings directly with optional threshold override
 - `spoofingAnalysisWithDetection(image: ArrayBuffer | Canvas, options?: DetectOptions): Promise<SpoofingResult | null>` - Analyzes spoofing with automatic detection and optional threshold overrides
 - `destroy(): Promise<void>` - Releases all model resources
 
@@ -289,6 +306,7 @@ Main service class for face detection, recognition, and verification.
 {
   compact: boolean; // Default: true
   detection?: DetectOptions; // Optional detection threshold overrides
+  threshold?: number; // Optional verification threshold override (falls back to model-level threshold, default: 0.7)
 }
 ```
 

@@ -19,8 +19,12 @@ export class CosineVerification extends BaseVerification {
 
   compare(
     embedding1: Float32Array,
-    embedding2: Float32Array
+    embedding2: Float32Array,
+    threshold?: number
   ): VerificationResult {
+    // Use provided threshold or fall back to model-level threshold
+    const effectiveThreshold = threshold ?? this.verificationOptions.threshold;
+
     this.log("compare", `Starting cosine similarity calculation...`);
     this.log("compare", `Embedding sizes: ${embedding1.length} vs ${embedding2.length}`);
 
@@ -42,7 +46,7 @@ export class CosineVerification extends BaseVerification {
       this.log("compare", "Zero norm detected, returning zero similarity");
       return {
         similarity: 0.0,
-        threshold: this.verificationOptions.threshold,
+        threshold: effectiveThreshold,
         verified: false,
       };
     }
@@ -63,13 +67,13 @@ export class CosineVerification extends BaseVerification {
     );
     this.log(
       "compare",
-      `  Threshold: ${this.verificationOptions.threshold}, Verified: ${similarity >= this.verificationOptions.threshold}`
+      `  Threshold: ${effectiveThreshold}, Verified: ${similarity >= effectiveThreshold}`
     );
 
     return {
       similarity: similarity,
-      threshold: this.verificationOptions.threshold,
-      verified: similarity >= this.verificationOptions.threshold,
+      threshold: effectiveThreshold,
+      verified: similarity >= effectiveThreshold,
     };
   }
 }

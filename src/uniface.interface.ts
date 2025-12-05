@@ -69,4 +69,8 @@ export interface UnifaceVerifyOptions {
   compact: boolean;
   /** Optional detection options to override model-level defaults */
   detection?: DetectOptions;
+  /** Optional verification threshold to override model-level default.
+   * Falls back to model-level verification confidence threshold if not provided.
+   */
+  threshold?: number;
 }

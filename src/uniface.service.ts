@@ -295,7 +295,8 @@ export class Uniface {
   ): Promise<UnifaceFullResult | UnifaceCompactResult> {
     const verification = await this.verifyEmbedding(
       result1.recognition.embedding,
-      result2.recognition.embedding
+      result2.recognition.embedding,
+      options.threshold
     );
 
     if (options.compact) {
@@ -334,13 +335,15 @@ export class Uniface {
    * Compares two face embeddings directly
    * @param embedding1 - First face embedding
    * @param embedding2 - Second face embedding
+   * @param threshold - Optional threshold to override model-level default
    * @returns Verification result with similarity score
    */
   async verifyEmbedding(
     embedding1: Float32Array,
-    embedding2: Float32Array
+    embedding2: Float32Array,
+    threshold?: number
   ): Promise<VerificationResult> {
-    const result = this.verification.compare(embedding1, embedding2);
+    const result = this.verification.compare(embedding1, embedding2, threshold);
     return result;
   }
 
