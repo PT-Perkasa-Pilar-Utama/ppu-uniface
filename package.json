@@ -1,6 +1,6 @@
 {
   "name": "ppu-uniface",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Typescript, type-safe, opinionated port of python's uniface: a comprehensive library for face detection, recognition, ~~landmark analysis, age, and gender detection.~~",
   "keywords": [
     "bun-compatible",
@@ -49,17 +49,18 @@
     "tsx": "latest",
     "typescript": "latest",
     "typescript-eslint": "latest",
-    "uglify-js": ">=2.4.24"
+    "uglify-js": ">=2.4.24",
+    "onnxruntime-node": "^1.23.2"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5",
+    "onnxruntime-node": "^1.23.2"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/PT-Perkasa-Pilar-Utama/ppu-uniface.git"
   },
   "dependencies": {
-    "onnxruntime-node": "^1.23.2",
     "ppu-ocv": "^1.6.0"
   }
 }
