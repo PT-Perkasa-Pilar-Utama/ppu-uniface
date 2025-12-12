@@ -1,12 +1,12 @@
 import * as ort from "onnxruntime-node";
 import { Canvas, ImageProcessor } from "ppu-ocv";
-import { GITHUB_BASE_URL } from "../constant";
+import { GITHUB_BASE_URL } from "../constant.js";
 import {
   BaseDetection,
   type DetectOptions,
   type DetectionModelOptions,
   type DetectionResult,
-} from "./base.interface";
+} from "./base.interface.js";
 
 export class RetinaNetDetection extends BaseDetection {
   protected override className: string = "RetinaNetDetection";
@@ -224,7 +224,10 @@ export class RetinaNetDetection extends BaseDetection {
     scores: Float32Array;
     landmarks: Float32Array;
   } {
-    return this.postprocessWithThreshold(outputs, this.detectionOptions.threshold);
+    return this.postprocessWithThreshold(
+      outputs,
+      this.detectionOptions.threshold
+    );
   }
 
   protected postprocessWithThreshold(

@@ -5,7 +5,7 @@
     "": {
       "name": "ppu-uniface",
       "dependencies": {
-        "ppu-ocv": "^1.6.0",
+        "ppu-ocv": "^1.7.0",
       },
       "devDependencies": {
         "@stylistic/eslint-plugin": "latest",
@@ -353,7 +353,7 @@
 
     "picomatch": ["picomatch@4.0.3", "", {}, "sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q=="],
 
-    "ppu-ocv": ["ppu-ocv@1.6.0", "", { "dependencies": { "@napi-rs/canvas": "^0.1.69", "@techstark/opencv-js": "^4.10.0-release.1" } }, "sha512-4GtGkgeZHuCvdH9oYsvflVIaqLtaUYKcFKv+/rJdMIO8fKO7fV/Fs8mohwzT68j9wWtpVBd/p+qjDlSa7Lof6A=="],
+    "ppu-ocv": ["ppu-ocv@1.7.0", "", { "dependencies": { "@napi-rs/canvas": "^0.1.69", "@techstark/opencv-js": "^4.10.0-release.1" } }, "sha512-Nkvm5wymBo0wK+7rV5485bbOvcXWi0I8Rsm/v/F8L6DJ8K6ukiaosodCADkU2UyOb6qbSR6jXDDJcvlHnUxPVQ=="],
 
     "prelude-ls": ["prelude-ls@1.2.1", "", {}, "sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g=="],
 

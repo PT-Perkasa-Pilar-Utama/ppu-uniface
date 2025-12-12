@@ -1,10 +1,10 @@
-import type { SpoofingResult } from "./analysis/spoofing.ana";
+import type { SpoofingResult } from "./analysis/spoofing.ana.js";
 import type {
   DetectOptions,
   DetectionResult,
-} from "./detection/base.interface";
-import type { RecognitionResult } from "./recognition/base.interface";
-import type { VerificationResult } from "./verification/base.interface";
+} from "./detection/base.interface.js";
+import type { RecognitionResult } from "./recognition/base.interface.js";
+import type { VerificationResult } from "./verification/base.interface.js";
 
 /**
  * Full verification result containing all detection, recognition, and verification data

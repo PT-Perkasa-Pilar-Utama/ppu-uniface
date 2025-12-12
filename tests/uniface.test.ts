@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { LoggerConfig } from "../src/logger";
-import { Uniface } from "../src/uniface.service";
+import { LoggerConfig } from "../src/logger.js";
+import { Uniface } from "../src/uniface.service.js";
 
 describe("Uniface", () => {
   let uniface: Uniface;

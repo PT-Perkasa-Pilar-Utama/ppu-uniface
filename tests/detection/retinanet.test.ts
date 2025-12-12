@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { RetinaNetDetection } from "../../src/detection/retinanet.det";
-import { LoggerConfig } from "../../src/logger";
+import { RetinaNetDetection } from "../../src/detection/retinanet.det.js";
+import { LoggerConfig } from "../../src/logger.js";
 
 describe("RetinaNetDetection", () => {
   let detector: RetinaNetDetection;

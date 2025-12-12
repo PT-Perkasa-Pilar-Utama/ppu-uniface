@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 
 import * as path from "path";
-import { CACHE_DIR } from "./constant";
-import { logger } from "./logger";
+import { CACHE_DIR } from "./constant.js";
+import { logger } from "./logger.js";
 
 /**
  * Base class providing resource loading and caching functionality

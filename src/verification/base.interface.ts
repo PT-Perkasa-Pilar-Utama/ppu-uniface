@@ -1,4 +1,4 @@
-import { Base } from "../global.interface";
+import { Base } from "../global.interface.js";
 
 /**
  * Configuration options for face verification

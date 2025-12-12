@@ -1,35 +1,35 @@
 import { Canvas, ImageProcessor } from "ppu-ocv";
-import { alignAndCropFace } from "./alignment.face";
+import { alignAndCropFace } from "./alignment.face.js";
 import {
   SpoofingDetection,
   type SpoofingOptions,
   type SpoofingResult,
-} from "./analysis/spoofing.ana";
+} from "./analysis/spoofing.ana.js";
 import type {
   BaseDetection,
   DetectOptions,
   DetectionModelOptions,
   DetectionResult,
-} from "./detection/base.interface";
-import { RetinaNetDetection } from "./detection/retinanet.det";
-import { logger } from "./logger";
+} from "./detection/base.interface.js";
+import { RetinaNetDetection } from "./detection/retinanet.det.js";
+import { logger } from "./logger.js";
 import type {
   BaseRecognition,
   RecognitionModelOptions,
   RecognitionResult,
-} from "./recognition/base.interface";
-import { FaceNet512Recognition } from "./recognition/facenet512.rec";
+} from "./recognition/base.interface.js";
+import { FaceNet512Recognition } from "./recognition/facenet512.rec.js";
 import type {
   UnifaceCompactResult,
   UnifaceFullResult,
   UnifaceVerifyOptions,
-} from "./uniface.interface";
+} from "./uniface.interface.js";
 import type {
   BaseVerification,
   VerificationModelOptions,
   VerificationResult,
-} from "./verification/base.interface";
-import { CosineVerification } from "./verification/cosine.ver";
+} from "./verification/base.interface.js";
+import { CosineVerification } from "./verification/cosine.ver.js";
 
 /**
  * Configuration options for Uniface service

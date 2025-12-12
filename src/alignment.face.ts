@@ -1,5 +1,5 @@
 import { CanvasToolkit, cv, ImageProcessor, type Canvas } from "ppu-ocv";
-import type { DetectionResult } from "./detection/base.interface";
+import type { DetectionResult } from "./detection/base.interface.js";
 
 /**
  * Aligns and crops a face from an image based on detection results
@@ -15,14 +15,14 @@ export async function alignAndCropFace(
     image instanceof ArrayBuffer
       ? await ImageProcessor.prepareCanvas(image)
       : image;
-  
+
   const { canvas: alignedCanvas, detection: alignedDetection } = alignFace(
     canvas,
     detection
   );
-  
+
   const croppedCanvas = cropFace(alignedCanvas, alignedDetection);
-  
+
   return croppedCanvas;
 }
 
@@ -47,7 +47,7 @@ export function alignFace(
   const dx = rightEye[0]! - leftEye[0]!;
   const dy = rightEye[1]! - leftEye[1]!;
   const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-  
+
   if (Math.abs(angle) < 2) {
     return { canvas, detection };
   }
@@ -126,7 +126,7 @@ function rotatePoint(
     x: center.x + (dx * cos - dy * sin),
     y: center.y + (dx * sin + dy * cos),
   };
-  
+
   return rotated;
 }
 
@@ -149,6 +149,6 @@ export function cropFace(canvas: Canvas, detection: DetectionResult): Canvas {
     canvas,
     bbox: { x0, y0, x1, y1 },
   });
-  
+
   return croppedCanvas;
 }

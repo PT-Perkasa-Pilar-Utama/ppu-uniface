@@ -1,11 +1,11 @@
 import * as ort from "onnxruntime-node";
 import { ImageProcessor, type Canvas } from "ppu-ocv";
-import { GITHUB_BASE_URL } from "../constant";
+import { GITHUB_BASE_URL } from "../constant.js";
 import {
   BaseRecognition,
   type RecognitionModelOptions,
   type RecognitionResult,
-} from "./base.interface";
+} from "./base.interface.js";
 
 export class FaceNet512Recognition extends BaseRecognition {
   protected override className: string = "FaceNet512Recognition";

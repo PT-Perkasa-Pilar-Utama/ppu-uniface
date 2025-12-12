@@ -1,4 +1,4 @@
-import { Base } from "../global.interface";
+import { Base } from "../global.interface.js";
 
 export abstract class BaseAnalysis extends Base {
   /** Class name for logging */

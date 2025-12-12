@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { alignAndCropFace, RetinaNetDetection } from "../../src";
-import { SpoofingDetection } from "../../src/analysis/spoofing.ana";
-import { LoggerConfig } from "../../src/logger";
+import { SpoofingDetection } from "../../src/analysis/spoofing.ana.js";
+import { alignAndCropFace, RetinaNetDetection } from "../../src/index.js";
+import { LoggerConfig } from "../../src/logger.js";
 
 describe("SpoofingDetection", () => {
   let spoofing: SpoofingDetection;

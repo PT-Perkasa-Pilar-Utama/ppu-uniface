@@ -1,6 +1,6 @@
 import * as ort from "onnxruntime-node";
 import type { Canvas } from "ppu-ocv";
-import { Base } from "../global.interface";
+import { Base } from "../global.interface.js";
 
 /**
  * Configuration options for face detection models

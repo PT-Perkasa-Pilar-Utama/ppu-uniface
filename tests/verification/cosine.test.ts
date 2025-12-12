@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CosineVerification } from "../../src/verification/cosine.ver";
+import { CosineVerification } from "../../src/verification/cosine.ver.js";
 
 describe("CosineVerification", () => {
   test("should calculate cosine similarity for identical embeddings", () => {

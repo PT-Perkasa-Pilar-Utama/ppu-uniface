@@ -2,7 +2,7 @@ import {
   BaseVerification,
   type VerificationModelOptions,
   type VerificationResult,
-} from "./base.interface";
+} from "./base.interface.js";
 
 export class CosineVerification extends BaseVerification {
   protected verificationOptions: VerificationModelOptions = {
@@ -26,7 +26,10 @@ export class CosineVerification extends BaseVerification {
     const effectiveThreshold = threshold ?? this.verificationOptions.threshold;
 
     this.log("compare", `Starting cosine similarity calculation...`);
-    this.log("compare", `Embedding sizes: ${embedding1.length} vs ${embedding2.length}`);
+    this.log(
+      "compare",
+      `Embedding sizes: ${embedding1.length} vs ${embedding2.length}`
+    );
 
     this.log("compare", "Calculating dot product and norms...");
     let dotProduct = 0;
@@ -40,7 +43,10 @@ export class CosineVerification extends BaseVerification {
     }
 
     this.log("compare", `Dot product calculated: ${dotProduct.toFixed(6)}`);
-    this.log("compare", `Norm A squared: ${normA.toFixed(6)}, Norm B squared: ${normB.toFixed(6)}`);
+    this.log(
+      "compare",
+      `Norm A squared: ${normA.toFixed(6)}, Norm B squared: ${normB.toFixed(6)}`
+    );
 
     if (normA === 0 || normB === 0) {
       this.log("compare", "Zero norm detected, returning zero similarity");

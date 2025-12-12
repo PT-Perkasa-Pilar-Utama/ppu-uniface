@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { ImageProcessor } from "ppu-ocv";
-import { LoggerConfig } from "../../src/logger";
-import { FaceNet512Recognition } from "../../src/recognition/facenet512.rec";
+import { LoggerConfig } from "../../src/logger.js";
+import { FaceNet512Recognition } from "../../src/recognition/facenet512.rec.js";
 
 describe("FaceNet512Recognition", () => {
   let recognizer: FaceNet512Recognition;
@@ -24,7 +24,9 @@ describe("FaceNet512Recognition", () => {
   });
 
   test("should generate embedding from image", async () => {
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const result = await recognizer.recognize(imageBuffer);
 
     expect(result).toBeDefined();
@@ -33,7 +35,9 @@ describe("FaceNet512Recognition", () => {
   });
 
   test("should generate consistent embeddings for same image", async () => {
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const result1 = await recognizer.recognize(imageBuffer);
     const result2 = await recognizer.recognize(imageBuffer);
 
@@ -45,8 +49,12 @@ describe("FaceNet512Recognition", () => {
   });
 
   test("should generate different embeddings for different images", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-kevin1.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-kevin1.png"
+    ).arrayBuffer();
 
     const result1 = await recognizer.recognize(imageBuffer1);
     const result2 = await recognizer.recognize(imageBuffer2);
@@ -64,7 +72,9 @@ describe("FaceNet512Recognition", () => {
   });
 
   test("should handle different image formats", async () => {
-    const jpegBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const jpegBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const pngBuffer = await Bun.file("assets/image-kevin1.png").arrayBuffer();
 
     const jpegResult = await recognizer.recognize(jpegBuffer);
@@ -77,7 +87,9 @@ describe("FaceNet512Recognition", () => {
   });
 
   test("should handle canvas input", async () => {
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const canvas = await ImageProcessor.prepareCanvas(imageBuffer);
     const result = await recognizer.recognize(canvas);
 
@@ -86,7 +98,9 @@ describe("FaceNet512Recognition", () => {
   });
 
   test("should generate normalized embeddings", async () => {
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const result = await recognizer.recognize(imageBuffer);
 
     const values = Array.from(result.embedding);
@@ -98,11 +112,15 @@ describe("FaceNet512Recognition", () => {
   });
 
   test("should handle resizing correctly", async () => {
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     const canvas = await ImageProcessor.prepareCanvas(imageBuffer);
 
     const processor = new ImageProcessor(canvas);
-    const resizedCanvas = processor.resize({ width: 100, height: 100 }).toCanvas();
+    const resizedCanvas = processor
+      .resize({ width: 100, height: 100 })
+      .toCanvas();
     processor.destroy();
 
     const result = await recognizer.recognize(resizedCanvas);
@@ -113,7 +131,9 @@ describe("FaceNet512Recognition", () => {
 
   test("should throw error if not initialized", async () => {
     const uninitializedRecognizer = new FaceNet512Recognition();
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
 
     expect(async () => {
       await uninitializedRecognizer.recognize(imageBuffer);
@@ -125,15 +145,21 @@ describe("FaceNet512Recognition", () => {
     await testRecognizer.initialize();
     await testRecognizer.destroy();
 
-    const imageBuffer = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
+    const imageBuffer = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
     expect(async () => {
       await testRecognizer.recognize(imageBuffer);
     }).toThrow();
   });
 
   test("should generate similar embeddings for same person", async () => {
-    const imageBuffer1 = await Bun.file("assets/image-haaland1.jpeg").arrayBuffer();
-    const imageBuffer2 = await Bun.file("assets/image-haaland2.png").arrayBuffer();
+    const imageBuffer1 = await Bun.file(
+      "assets/image-haaland1.jpeg"
+    ).arrayBuffer();
+    const imageBuffer2 = await Bun.file(
+      "assets/image-haaland2.png"
+    ).arrayBuffer();
 
     const result1 = await recognizer.recognize(imageBuffer1);
     const result2 = await recognizer.recognize(imageBuffer2);

@@ -1,7 +1,7 @@
 import * as ort from "onnxruntime-node";
 import { Canvas, createCanvas, ImageProcessor } from "ppu-ocv";
-import { GITHUB_BASE_URL } from "../constant";
-import { BaseAnalysis } from "./base.interface";
+import { GITHUB_BASE_URL } from "../constant.js";
+import { BaseAnalysis } from "./base.interface.js";
 
 /**
  * Configuration options for face spoofing detection models
