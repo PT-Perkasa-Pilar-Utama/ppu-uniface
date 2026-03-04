@@ -582,16 +582,24 @@
     </p>
   </footer>
 
-  <script type="importmap">
-  {
-    "imports": {
-      "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.all.bundle.min.mjs",
-      "onnxruntime-common": "https://cdn.jsdelivr.net/npm/onnxruntime-common@1.23.2/dist/ort-common.min.mjs",
-      "ppu-ocv/web": "https://cdn.jsdelivr.net/npm/ppu-ocv@2/index.web.js",
-      "ppu-uniface/web": "./lib/web/index.js",
-      "ppu-uniface/": "./lib/"
-    }
-  }
+  <script>
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const baseUrl = isLocal ? './lib/' : 'https://cdn.jsdelivr.net/npm/ppu-uniface@3/';
+    
+    const imaps = {
+      "imports": {
+        "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.all.bundle.min.mjs",
+        "onnxruntime-common": "https://cdn.jsdelivr.net/npm/onnxruntime-common@1.23.2/dist/ort-common.min.mjs",
+        "ppu-ocv/web": "https://cdn.jsdelivr.net/npm/ppu-ocv@2/index.web.js",
+        "ppu-uniface/web": baseUrl + "web/index.js",
+        "ppu-uniface/": baseUrl
+      }
+    };
+    
+    const script = document.createElement('script');
+    script.type = 'importmap';
+    script.textContent = JSON.stringify(imaps);
+    document.head.appendChild(script);
   </script>
 
   <script type="module">
