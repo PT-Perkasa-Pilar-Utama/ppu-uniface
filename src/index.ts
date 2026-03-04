@@ -6,16 +6,18 @@ export type {
 export { Uniface } from "./uniface.service.js";
 
 export { Base } from "./global.interface.js";
-export { logger, LoggerConfig } from "./logger.js";
+export { LoggerConfig, logger } from "./logger.js";
 
 export { alignAndCropFace, alignFace, cropFace } from "./alignment.face.js";
-export { CACHE_DIR, GITHUB_BASE_URL } from "./constant.js";
+export { GITHUB_BASE_URL } from "./constant.js";
+
+export type { CoreCanvas, PlatformProvider } from "./core/platform.js";
 
 export {
   BaseDetection,
+  type DetectOptions,
   type DetectionModelOptions,
   type DetectionResult,
-  type DetectOptions,
 } from "./detection/base.interface.js";
 export { RetinaNetDetection } from "./detection/retinanet.det.js";
 

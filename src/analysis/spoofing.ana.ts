@@ -1,6 +1,6 @@
-import * as ort from "onnxruntime-node";
-import { Canvas, createCanvas, ImageProcessor } from "ppu-ocv";
+import type { InferenceSession } from "onnxruntime-common";
 import { GITHUB_BASE_URL } from "../constant.js";
+import type { CoreCanvas, PlatformProvider } from "../core/platform.js";
 import { BaseAnalysis } from "./base.interface.js";
 
 /**
@@ -33,16 +33,19 @@ export class SpoofingDetection extends BaseAnalysis {
   protected firstModelPath: string = "spoofing/MiniFASNetV2.onnx";
   protected secondModelPath: string = "spoofing/MiniFASNetV1SE.onnx";
 
-  protected firstSession: ort.InferenceSession | null = null;
-  protected secondSession: ort.InferenceSession | null = null;
+  protected firstSession: InferenceSession | null = null;
+  protected secondSession: InferenceSession | null = null;
 
   protected options: SpoofingOptions = {
     threshold: 0.5,
     enable: true,
   };
 
-  constructor(options: Partial<SpoofingOptions> = {}) {
-    super();
+  constructor(
+    options: Partial<SpoofingOptions> = {},
+    platform?: PlatformProvider,
+  ) {
+    super(platform);
     this.options = {
       ...this.options,
       ...options,
@@ -51,24 +54,24 @@ export class SpoofingDetection extends BaseAnalysis {
 
   async initialize(): Promise<void> {
     this.log("initialize", "Starting MiniFASNet initialization...");
-    await ImageProcessor.initRuntime();
+    await this.platform.initRuntime();
 
     const firstBuffer = await this.loadResource(
       undefined,
-      `${GITHUB_BASE_URL}${this.firstModelPath}`
+      `${GITHUB_BASE_URL}${this.firstModelPath}`,
     );
 
-    this.firstSession = await ort.InferenceSession.create(
-      new Uint8Array(firstBuffer)
+    this.firstSession = await this.platform.ort.InferenceSession.create(
+      new Uint8Array(firstBuffer),
     );
 
     const secondBuffer = await this.loadResource(
       undefined,
-      `${GITHUB_BASE_URL}${this.secondModelPath}`
+      `${GITHUB_BASE_URL}${this.secondModelPath}`,
     );
 
-    this.secondSession = await ort.InferenceSession.create(
-      new Uint8Array(secondBuffer)
+    this.secondSession = await this.platform.ort.InferenceSession.create(
+      new Uint8Array(secondBuffer),
     );
     this.log("initialize", "MiniFASNet initialized");
   }
@@ -88,15 +91,15 @@ export class SpoofingDetection extends BaseAnalysis {
    *                   If not provided, uses the entire image as the facial area.
    */
   async analyze(
-    image: ArrayBuffer | Canvas,
-    facialArea?: { x: number; y: number; width: number; height: number }
+    image: ArrayBuffer | CoreCanvas,
+    facialArea?: { x: number; y: number; width: number; height: number },
   ): Promise<SpoofingResult> {
     if (!this.isInitialized)
       throw Error(`${this.className} session was not initialized`);
 
     const canvas =
       image instanceof ArrayBuffer
-        ? await ImageProcessor.prepareCanvas(image)
+        ? await this.platform.prepareCanvas(image)
         : image;
 
     const bbox = facialArea || {
@@ -106,17 +109,29 @@ export class SpoofingDetection extends BaseAnalysis {
       height: Math.floor(canvas.height / 4),
     };
 
-    const [firstOutput, secondOutput] = await Promise.all([
-      this.preprocessPromise(canvas, bbox, 2.7, 80, 80, this.firstSession!),
-      this.preprocessPromise(canvas, bbox, 4.0, 80, 80, this.secondSession!),
-    ]);
+    const firstOutput = await this.preprocessPromise(
+      canvas,
+      bbox,
+      2.7,
+      80,
+      80,
+      this.firstSession!,
+    );
+    const secondOutput = await this.preprocessPromise(
+      canvas,
+      bbox,
+      4.0,
+      80,
+      80,
+      this.secondSession!,
+    );
 
     const result = this.postprocess(firstOutput, secondOutput);
     this.log(
       "analyze",
       `Spoofing analysis: real=${result.real}, score=${result.score.toFixed(
-        3
-      )}, realness=${result.realness.toFixed(3)}`
+        3,
+      )}, realness=${result.realness.toFixed(3)}`,
     );
 
     return result;
@@ -124,21 +139,15 @@ export class SpoofingDetection extends BaseAnalysis {
 
   /**
    * Preprocess image by cropping from original image with scale and resizing
-   * @param canvas Original full image canvas
-   * @param bbox Facial bounding box
-   * @param scale Scale factor for cropping
-   * @param outW Output width
-   * @param outH Output height
-   * @returns Preprocessed tensor
    */
   protected async preprocessPromise(
-    canvas: Canvas,
+    canvas: CoreCanvas,
     bbox: { x: number; y: number; width: number; height: number },
     scale: number,
     outW: number,
     outH: number,
-    session: ort.InferenceSession
-  ): Promise<ort.InferenceSession.OnnxValueMapType> {
+    session: InferenceSession,
+  ): Promise<InferenceSession.OnnxValueMapType> {
     const tensor = this.preprocessWithCrop(canvas, bbox, scale, outW, outH);
     const output = await this.inference(session!, tensor, [1, 3, 80, 80]);
     return output;
@@ -146,19 +155,13 @@ export class SpoofingDetection extends BaseAnalysis {
 
   /**
    * Preprocess image by cropping from original image with scale and resizing
-   * @param canvas Original full image canvas
-   * @param bbox Facial bounding box
-   * @param scale Scale factor for cropping
-   * @param outW Output width
-   * @param outH Output height
-   * @returns Preprocessed tensor
    */
   protected preprocessWithCrop(
-    canvas: Canvas,
+    canvas: CoreCanvas,
     bbox: { x: number; y: number; width: number; height: number },
     scale: number,
     outW: number,
-    outH: number
+    outH: number,
   ): Float32Array {
     const { width: srcW, height: srcH } = canvas;
     const newBox = this.getNewBox(srcW, srcH, bbox, scale);
@@ -168,17 +171,17 @@ export class SpoofingDetection extends BaseAnalysis {
       newBox.x,
       newBox.y,
       newBox.width,
-      newBox.height
+      newBox.height,
     );
 
-    const tempCanvas = createCanvas(newBox.width, newBox.height);
+    const tempCanvas = this.platform.createCanvas(newBox.width, newBox.height);
     const tempCtx = tempCanvas.getContext("2d");
     tempCtx.putImageData(croppedImageData, 0, 0);
 
     // Resize to target size
     let resizedCanvas = tempCanvas;
     if (newBox.width !== outW || newBox.height !== outH) {
-      const targetCanvas = createCanvas(outW, outH);
+      const targetCanvas = this.platform.createCanvas(outW, outH);
       const targetCtx = targetCanvas.getContext("2d");
       targetCtx.imageSmoothingEnabled = true;
       targetCtx.imageSmoothingQuality = "high";
@@ -191,7 +194,7 @@ export class SpoofingDetection extends BaseAnalysis {
         0,
         0,
         outW,
-        outH
+        outH,
       );
       resizedCanvas = targetCanvas;
     }
@@ -201,21 +204,17 @@ export class SpoofingDetection extends BaseAnalysis {
 
   /**
    * Simple preprocess by resizing only (for pre-cropped faces)
-   * @param canvas Input canvas
-   * @param outW Output width
-   * @param outH Output height
-   * @returns Preprocessed tensor
    */
   protected preprocess(
-    canvas: Canvas,
+    canvas: CoreCanvas,
     outW: number,
-    outH: number
+    outH: number,
   ): Float32Array {
     const { width, height } = canvas;
 
     let resizedCanvas = canvas;
     if (width !== outW || height !== outH) {
-      const targetCanvas = createCanvas(outW, outH);
+      const targetCanvas = this.platform.createCanvas(outW, outH);
       const targetCtx = targetCanvas.getContext("2d");
       targetCtx.imageSmoothingEnabled = true;
       targetCtx.imageSmoothingQuality = "high";
@@ -230,9 +229,9 @@ export class SpoofingDetection extends BaseAnalysis {
    * Convert canvas to tensor in CHW format
    */
   protected canvasToTensor(
-    canvas: Canvas,
+    canvas: CoreCanvas,
     width: number,
-    height: number
+    height: number,
   ): Float32Array {
     const channels = 3;
     const tensor = new Float32Array(channels * height * width);
@@ -260,24 +259,18 @@ export class SpoofingDetection extends BaseAnalysis {
 
   /**
    * Calculate new bounding box with scale
-   * @param srcW Source width
-   * @param srcH Source height
-   * @param bbox Original bounding box
-   * @param scale Scale factor
-   * @returns New bounding box
    */
   protected getNewBox(
     srcW: number,
     srcH: number,
     bbox: { x: number; y: number; width: number; height: number },
-    scale: number
+    scale: number,
   ): { x: number; y: number; width: number; height: number } {
     const { x, y, width: boxW, height: boxH } = bbox;
 
-    // Adjust scale to fit within image bounds
     const adjustedScale = Math.min(
       (srcH - 1) / boxH,
-      Math.min((srcW - 1) / boxW, scale)
+      Math.min((srcW - 1) / boxW, scale),
     );
 
     const newWidth = boxW * adjustedScale;
@@ -317,28 +310,22 @@ export class SpoofingDetection extends BaseAnalysis {
 
   /**
    * Run inference on a model
-   * @param session ONNX session
-   * @param tensor Input tensor
-   * @param shape Input shape
-   * @returns Model output
    */
   protected async inference(
-    session: ort.InferenceSession,
+    session: InferenceSession,
     tensor: Float32Array,
-    shape: number[]
-  ): Promise<ort.InferenceSession.OnnxValueMapType> {
-    const feeds: Record<string, ort.Tensor> = {};
+    shape: number[],
+  ): Promise<InferenceSession.OnnxValueMapType> {
+    const feeds: Record<string, any> = {};
     const inputName = session.inputNames[0]!;
 
-    feeds[inputName] = new ort.Tensor("float32", tensor, shape);
+    feeds[inputName] = new this.platform.ort.Tensor("float32", tensor, shape);
     const result = await session.run(feeds);
     return result;
   }
 
   /**
    * Apply softmax to logits
-   * @param logits Input logits
-   * @returns Softmax probabilities
    */
   protected softmax(logits: Float32Array): Float32Array {
     const max = Math.max(...Array.from(logits));
@@ -349,13 +336,10 @@ export class SpoofingDetection extends BaseAnalysis {
 
   /**
    * Postprocess model outputs
-   * @param firstOutput First model output
-   * @param secondOutput Second model output
-   * @returns Spoofing result
    */
   protected postprocess(
-    firstOutput: ort.InferenceSession.OnnxValueMapType,
-    secondOutput: ort.InferenceSession.OnnxValueMapType
+    firstOutput: InferenceSession.OnnxValueMapType,
+    secondOutput: InferenceSession.OnnxValueMapType,
   ): SpoofingResult {
     const firstOutputName = this.firstSession!.outputNames[0]!;
     const secondOutputName = this.secondSession!.outputNames[0]!;

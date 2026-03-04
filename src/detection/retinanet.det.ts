@@ -1,6 +1,6 @@
-import * as ort from "onnxruntime-node";
-import { Canvas, ImageProcessor } from "ppu-ocv";
+import type { InferenceSession } from "onnxruntime-common";
 import { GITHUB_BASE_URL } from "../constant.js";
+import type { CoreCanvas, PlatformProvider } from "../core/platform.js";
 import {
   BaseDetection,
   type DetectOptions,
@@ -11,7 +11,7 @@ import {
 export class RetinaNetDetection extends BaseDetection {
   protected override className: string = "RetinaNetDetection";
   protected override modelPath: string = "detection/retinaface_mv2.onnx";
-  protected override session: ort.InferenceSession | null = null;
+  protected override session: InferenceSession | null = null;
 
   protected anchorsCache: Float32Array | null = null;
   protected anchorsCacheShape: string = "";
@@ -30,8 +30,11 @@ export class RetinaNetDetection extends BaseDetection {
     },
   };
 
-  constructor(options: Partial<DetectionModelOptions> = {}) {
-    super();
+  constructor(
+    options: Partial<DetectionModelOptions> = {},
+    platform?: PlatformProvider,
+  ) {
+    super(platform);
     this.detectionOptions = {
       ...this.detectionOptions,
       ...options,
@@ -52,14 +55,16 @@ export class RetinaNetDetection extends BaseDetection {
 
   async initialize(): Promise<void> {
     this.log("initialize", "Starting RetinaNet initialization...");
-    await ImageProcessor.initRuntime();
+    await this.platform.initRuntime();
 
     const buffer = await this.loadResource(
       undefined,
-      `${GITHUB_BASE_URL}${this.modelPath}`
+      `${GITHUB_BASE_URL}${this.modelPath}`,
     );
 
-    this.session = await ort.InferenceSession.create(new Uint8Array(buffer));
+    this.session = await this.platform.ort.InferenceSession.create(
+      new Uint8Array(buffer),
+    );
 
     const [inputH, inputW] = this.detectionOptions.size.input;
     this.anchorsCache = this.generateAnchors([inputH, inputW]);
@@ -67,7 +72,7 @@ export class RetinaNetDetection extends BaseDetection {
 
     this.log(
       "initialize",
-      `RetinaNet initialized: ${this.anchorsCache.length / 4} anchors for ${inputW}x${inputH}`
+      `RetinaNet initialized: ${this.anchorsCache.length / 4} anchors for ${inputW}x${inputH}`,
     );
   }
 
@@ -77,15 +82,15 @@ export class RetinaNetDetection extends BaseDetection {
    * @param options - Optional detection options
    */
   async detect(
-    image: ArrayBuffer | Canvas,
-    options: DetectOptions = {}
+    image: ArrayBuffer | CoreCanvas,
+    options: DetectOptions = {},
   ): Promise<DetectionResult | null> {
     if (!this.isInitialized)
       throw Error(`${this.className} session was not initialized`);
 
     const canvas =
       image instanceof ArrayBuffer
-        ? await ImageProcessor.prepareCanvas(image)
+        ? await this.platform.prepareCanvas(image)
         : image;
     const { height, width } = canvas;
 
@@ -93,11 +98,11 @@ export class RetinaNetDetection extends BaseDetection {
     let inputCanvas = canvas;
 
     if (width !== targetW || height !== targetH) {
-      const processor = new ImageProcessor(canvas);
-      inputCanvas = processor
-        .resize({ width: targetW, height: targetH })
-        .toCanvas();
-      processor.destroy();
+      // Use platform to resize — for web we use drawImage, for node we use ImageProcessor
+      const resizeCanvas = this.platform.createCanvas(targetW, targetH);
+      const ctx = resizeCanvas.getContext("2d");
+      ctx.drawImage(canvas, 0, 0, width, height, 0, 0, targetW, targetH);
+      inputCanvas = resizeCanvas;
     }
 
     const tensor = this.preprocess(inputCanvas, targetH, targetW);
@@ -166,7 +171,7 @@ export class RetinaNetDetection extends BaseDetection {
     const confidence = result.scores[largestIdx]!;
     this.log(
       "detect",
-      `Detected face: confidence=${(confidence * 100).toFixed(1)}%, multiple=${multipleFaces}`
+      `Detected face: confidence=${(confidence * 100).toFixed(1)}%, multiple=${multipleFaces}`,
     );
 
     return {
@@ -177,7 +182,7 @@ export class RetinaNetDetection extends BaseDetection {
     };
   }
 
-  preprocess(canvas: Canvas, height: number, width: number): Float32Array {
+  preprocess(canvas: CoreCanvas, height: number, width: number): Float32Array {
     const channels = 3;
     const tensor = new Float32Array(1 * channels * height * width);
 
@@ -204,35 +209,39 @@ export class RetinaNetDetection extends BaseDetection {
 
   async inference(
     tensor: Float32Array,
-    shape: [number, number]
-  ): Promise<ort.InferenceSession.OnnxValueMapType> {
+    shape: [number, number],
+  ): Promise<InferenceSession.OnnxValueMapType> {
     if (!this.isInitialized)
       throw Error(`${this.className} session was not initialized`);
 
-    const feeds: Record<string, ort.Tensor> = {};
+    const feeds: Record<string, any> = {};
     const inputName = this.session!.inputNames[0]!;
     const inputShape = [1, 3, ...shape];
 
-    feeds[inputName] = new ort.Tensor("float32", tensor, inputShape);
+    feeds[inputName] = new this.platform.ort.Tensor(
+      "float32",
+      tensor,
+      inputShape,
+    );
 
     const result = await this.session!.run(feeds);
     return result;
   }
 
-  postprocess(outputs: ort.InferenceSession.OnnxValueMapType): {
+  postprocess(outputs: InferenceSession.OnnxValueMapType): {
     boxes: Float32Array;
     scores: Float32Array;
     landmarks: Float32Array;
   } {
     return this.postprocessWithThreshold(
       outputs,
-      this.detectionOptions.threshold
+      this.detectionOptions.threshold,
     );
   }
 
   protected postprocessWithThreshold(
-    outputs: ort.InferenceSession.OnnxValueMapType,
-    threshold: { confidence: number; nonMaximumSuppression: number }
+    outputs: InferenceSession.OnnxValueMapType,
+    threshold: { confidence: number; nonMaximumSuppression: number },
   ): {
     boxes: Float32Array;
     scores: Float32Array;
@@ -299,14 +308,14 @@ export class RetinaNetDetection extends BaseDetection {
     const boxesDecoded = this.decodeBoxes(locSubset, priorsSubset);
     const landmarksDecoded = this.decodeLandmarks(
       landmarksSubset,
-      priorsSubset
+      priorsSubset,
     );
 
     const result = this.applyNMSAndTopK(
       boxesDecoded,
       scoresSubset,
       landmarksDecoded,
-      threshold.nonMaximumSuppression
+      threshold.nonMaximumSuppression,
     );
 
     return result;
@@ -316,7 +325,7 @@ export class RetinaNetDetection extends BaseDetection {
     filteredBoxesArray: Float32Array,
     filteredScoresArray: Float32Array,
     filteredLandmarksArray: Float32Array,
-    nmsThreshold: number
+    nmsThreshold: number,
   ): { boxes: Float32Array; scores: Float32Array; landmarks: Float32Array } {
     const numDetections = filteredScoresArray.length;
 
@@ -343,12 +352,12 @@ export class RetinaNetDetection extends BaseDetection {
     const keep = this.nonMaximumSuppression(
       detections,
       numDetections,
-      nmsThreshold
+      nmsThreshold,
     );
 
     const topK = Math.min(
       keep.length,
-      this.detectionOptions.topK.postNonMaxiumSuppression
+      this.detectionOptions.topK.postNonMaxiumSuppression,
     );
     const keepTopK = keep.slice(0, topK);
 

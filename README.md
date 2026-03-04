@@ -4,7 +4,10 @@ TypeScript, type-safe, opinionated port of Python's Uniface: A comprehensive lib
 
 ![ppu-uniface demo](https://raw.githubusercontent.com/PT-Perkasa-Pilar-Utama/ppu-uniface/refs/heads/main/assets/demo.png)
 
-See the demo repo: https://github.com/PT-Perkasa-Pilar-Utama/ppu-uniface-demo
+**Demos:**
+
+- Client-side (browser): https://pt-perkasa-pilar-utama.github.io/ppu-uniface/
+- Server-side (Next.js): https://github.com/PT-Perkasa-Pilar-Utama/ppu-uniface-demo
 
 The code pattern is highly inspired by Uniface, however we do not offer model variations. We stick to predetermined opinionated models and functionality to achieve a minimum footprint.
 
@@ -15,6 +18,7 @@ The code pattern is highly inspired by Uniface, however we do not offer model va
 3. **Face Verification**: Using Cosine similarity (unlike Deepface which offers euclidean, euclideanL2, and angular)
 4. **Face Alignment**: Automatic face alignment based on eye landmarks
 5. **Anti-Spoofing Face**: Following Deepface implementation, using Mini-FaceNet
+6. **Web Support**: Can run entirely in the browser using `onnxruntime-web`
 
 Customization will be added as we go along. Feel free to open an issue for feature requests.
 
@@ -177,6 +181,56 @@ if (detection) {
 await detector.destroy();
 await recognizer.destroy();
 ```
+
+## Web / Browser Support
+
+ppu-uniface runs entirely in the browser using `onnxruntime-web`. No server required.
+
+### Via npm (bundlers)
+
+```bash
+npm install ppu-uniface onnxruntime-web
+```
+
+```typescript
+import { Uniface } from "ppu-uniface/web";
+
+const uniface = new Uniface();
+await uniface.initialize();
+
+// Use with an image ArrayBuffer (from fetch, FileReader, canvas, etc.)
+const detection = await uniface.detect(imageArrayBuffer);
+const recognition = await uniface.recognize(imageArrayBuffer);
+const verification = await uniface.verify(image1, image2);
+const spoofing = await uniface.spoofingAnalysisWithDetection(imageArrayBuffer);
+
+await uniface.destroy();
+```
+
+### Via CDN (no build step)
+
+```html
+<script type="importmap">
+{
+  "imports": {
+    "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.all.bundle.min.mjs",
+    "onnxruntime-common": "https://cdn.jsdelivr.net/npm/onnxruntime-common@1.23.2/dist/ort-common.min.mjs",
+    "ppu-ocv/web": "https://cdn.jsdelivr.net/npm/ppu-ocv@2/index.web.js",
+    "ppu-uniface/web": "https://cdn.jsdelivr.net/npm/ppu-uniface@3/web/index.js"
+  }
+}
+</script>
+<script type="module">
+  import { Uniface } from "ppu-uniface/web";
+
+  const uniface = new Uniface();
+  await uniface.initialize();
+
+  // ... use uniface methods
+</script>
+```
+
+> **Note:** First initialization downloads ONNX models (~100MB total). Subsequent loads use browser cache.
 
 ## Configuration
 
@@ -387,10 +441,19 @@ Typical performance on modern hardware:
 
 ## Requirements
 
+### Server (Node.js / Bun)
+
 - **Runtime**: Bun or Node.js 18+
 - **Dependencies**:
   - `onnxruntime-node` - ONNX model inference
   - `ppu-ocv` - Computer vision utilities
+
+### Browser (Web)
+
+- **Runtime**: Modern browser with WebAssembly support
+- **Dependencies** (loaded via CDN or npm):
+  - `onnxruntime-web` - ONNX model inference (WASM)
+  - `ppu-ocv/web` - Computer vision utilities (browser build)
 
 ## Contribution
 
@@ -417,4 +480,4 @@ MIT
 
 - [x] Anti-spoofing detection
 - [x] Face detection customization options
-- [ ] Browser support (ONNX Web)
+- [x] Browser support (ONNX Web)

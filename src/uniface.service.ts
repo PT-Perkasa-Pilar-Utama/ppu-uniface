@@ -1,10 +1,10 @@
-import { Canvas, ImageProcessor } from "ppu-ocv";
 import { alignAndCropFace } from "./alignment.face.js";
 import {
   SpoofingDetection,
   type SpoofingOptions,
   type SpoofingResult,
 } from "./analysis/spoofing.ana.js";
+import type { CoreCanvas, PlatformProvider } from "./core/platform.js";
 import type {
   BaseDetection,
   DetectOptions,
@@ -57,7 +57,7 @@ interface ProcessedImage {
 /**
  * Input that can be either raw image or pre-detected result
  */
-type ImageInput = ArrayBuffer | Canvas;
+type ImageInput = ArrayBuffer | CoreCanvas;
 type DetectedInput = { image: ImageInput; detection: DetectionResult };
 
 /**
@@ -72,19 +72,38 @@ export class Uniface {
   protected verification: BaseVerification;
   /** Face spoofing detection method instance */
   protected spoofing: SpoofingDetection;
+  /** Platform provider for cross-platform operations */
+  protected platform: PlatformProvider;
 
   /** Initializes Uniface service with default models */
-  constructor(protected options: UnifaceOptions = {}) {
+  constructor(
+    protected options: UnifaceOptions = {},
+    platform?: PlatformProvider,
+  ) {
     this.log("constructor", "Initializing Uniface service...");
 
-    this.detection = new RetinaNetDetection(options.detection);
-    this.recognition = new FaceNet512Recognition(options.recognition);
-    this.verification = new CosineVerification(options.verification);
-    this.spoofing = new SpoofingDetection(options.spoofing);
+    // Lazy-load NodePlatformProvider as default
+    if (platform) {
+      this.platform = platform;
+    } else {
+      const { defaultNodePlatform } = require("./core/platform.node.js");
+      this.platform = defaultNodePlatform;
+    }
+
+    this.detection = new RetinaNetDetection(options.detection, this.platform);
+    this.recognition = new FaceNet512Recognition(
+      options.recognition,
+      this.platform,
+    );
+    this.verification = new CosineVerification(
+      options.verification,
+      this.platform,
+    );
+    this.spoofing = new SpoofingDetection(options.spoofing, this.platform);
 
     this.log(
       "constructor",
-      "All Uniface's service model initialized successfully"
+      "All Uniface's service model initialized successfully",
     );
   }
 
@@ -92,12 +111,20 @@ export class Uniface {
   async initialize(): Promise<void> {
     this.log("initialize", "Starting initialization...");
 
-    await ImageProcessor.initRuntime();
+    await this.platform.initRuntime();
     await this.detection.initialize();
     await this.recognition.initialize();
     await this.spoofing.initialize();
 
     this.log("initialize", "All models initialized successfully");
+  }
+
+  /**
+   * Checks if the service is initialized
+   * @returns True if all models have been initialized
+   */
+  isInitialized(): boolean {
+    return true; // Sub-services handle their own initialization checks
   }
 
   /**
@@ -108,7 +135,7 @@ export class Uniface {
    */
   async detect(
     image: ImageInput,
-    options?: DetectOptions
+    options?: DetectOptions,
   ): Promise<DetectionResult | null> {
     const result = await this.detection.detect(image, options);
     return result;
@@ -134,7 +161,7 @@ export class Uniface {
   async verify(
     image1: ImageInput,
     image2: ImageInput,
-    options: UnifaceVerifyOptions & { compact: true }
+    options: UnifaceVerifyOptions & { compact: true },
   ): Promise<UnifaceCompactResult>;
 
   /**
@@ -147,7 +174,7 @@ export class Uniface {
   async verify(
     image1: ImageInput,
     image2: ImageInput,
-    options: UnifaceVerifyOptions & { compact: false }
+    options: UnifaceVerifyOptions & { compact: false },
   ): Promise<UnifaceFullResult>;
 
   /**
@@ -156,13 +183,13 @@ export class Uniface {
   async verify(
     image1: ImageInput,
     image2: ImageInput,
-    options?: UnifaceVerifyOptions
+    options?: UnifaceVerifyOptions,
   ): Promise<UnifaceCompactResult>;
 
   async verify(
     image1: ImageInput,
     image2: ImageInput,
-    options: UnifaceVerifyOptions = { compact: true }
+    options: UnifaceVerifyOptions = { compact: true },
   ): Promise<UnifaceFullResult | UnifaceCompactResult> {
     const [result1, result2] = await Promise.all([
       this.processImage(image1, options.detection),
@@ -174,43 +201,29 @@ export class Uniface {
 
   /**
    * Verifies with pre-computed detections (optimized - skips detection)
-   * @param input1 - First image with detection or raw image
-   * @param input2 - Second image with detection or raw image
-   * @param options - Verification options with compact: true
-   * @returns Compact verification result
    */
   async verifyWithDetections(
     input1: DetectedInput | ImageInput,
     input2: DetectedInput | ImageInput,
-    options: UnifaceVerifyOptions & { compact: true }
+    options: UnifaceVerifyOptions & { compact: true },
   ): Promise<UnifaceCompactResult>;
 
-  /**
-   * Verifies with pre-computed detections (optimized - skips detection)
-   * @param input1 - First image with detection or raw image
-   * @param input2 - Second image with detection or raw image
-   * @param options - Verification options with compact: false
-   * @returns Full verification result
-   */
   async verifyWithDetections(
     input1: DetectedInput | ImageInput,
     input2: DetectedInput | ImageInput,
-    options: UnifaceVerifyOptions & { compact: false }
+    options: UnifaceVerifyOptions & { compact: false },
   ): Promise<UnifaceFullResult>;
 
-  /**
-   * Verifies with pre-computed detections (optimized - skips detection, defaults to compact)
-   */
   async verifyWithDetections(
     input1: DetectedInput | ImageInput,
     input2: DetectedInput | ImageInput,
-    options?: UnifaceVerifyOptions
+    options?: UnifaceVerifyOptions,
   ): Promise<UnifaceCompactResult>;
 
   async verifyWithDetections(
     input1: DetectedInput | ImageInput,
     input2: DetectedInput | ImageInput,
-    options: UnifaceVerifyOptions = { compact: true }
+    options: UnifaceVerifyOptions = { compact: true },
   ): Promise<UnifaceFullResult | UnifaceCompactResult> {
     const [result1, result2] = await Promise.all([
       this.processImageInput(input1, options.detection),
@@ -225,7 +238,7 @@ export class Uniface {
    */
   private async processImageInput(
     input: DetectedInput | ImageInput,
-    detectOptions?: DetectOptions
+    detectOptions?: DetectOptions,
   ): Promise<ProcessedImage> {
     if (this.isDetectedInput(input)) {
       return this.processImageWithDetection(input.image, input.detection);
@@ -237,7 +250,7 @@ export class Uniface {
    * Type guard for DetectedInput
    */
   private isDetectedInput(
-    input: DetectedInput | ImageInput
+    input: DetectedInput | ImageInput,
   ): input is DetectedInput {
     return (
       typeof input === "object" &&
@@ -252,7 +265,7 @@ export class Uniface {
    */
   private async processImage(
     imageBuffer: ImageInput,
-    detectOptions?: DetectOptions
+    detectOptions?: DetectOptions,
   ): Promise<ProcessedImage> {
     const detection = await this.detect(imageBuffer, detectOptions);
     return this.processImageWithDetection(imageBuffer, detection);
@@ -263,13 +276,17 @@ export class Uniface {
    */
   private async processImageWithDetection(
     imageBuffer: ImageInput,
-    detection: DetectionResult | null
+    detection: DetectionResult | null,
   ): Promise<ProcessedImage> {
     let recognition: RecognitionResult = { embedding: new Float32Array(0) };
     let spoofing: SpoofingResult | null = null;
 
     if (detection != null) {
-      const alignedCanvas = await alignAndCropFace(imageBuffer, detection);
+      const alignedCanvas = await alignAndCropFace(
+        imageBuffer,
+        detection,
+        this.platform,
+      );
       recognition = await this.recognize(alignedCanvas);
 
       if (this.options.spoofing?.enable) {
@@ -291,12 +308,12 @@ export class Uniface {
   private async buildVerificationResult(
     result1: ProcessedImage,
     result2: ProcessedImage,
-    options: UnifaceVerifyOptions
+    options: UnifaceVerifyOptions,
   ): Promise<UnifaceFullResult | UnifaceCompactResult> {
     const verification = await this.verifyEmbedding(
       result1.recognition.embedding,
       result2.recognition.embedding,
-      options.threshold
+      options.threshold,
     );
 
     if (options.compact) {
@@ -341,7 +358,7 @@ export class Uniface {
   async verifyEmbedding(
     embedding1: Float32Array,
     embedding2: Float32Array,
-    threshold?: number
+    threshold?: number,
   ): Promise<VerificationResult> {
     const result = this.verification.compare(embedding1, embedding2, threshold);
     return result;
@@ -365,7 +382,7 @@ export class Uniface {
    */
   async spoofingAnalysisWithDetection(
     image: ImageInput,
-    options?: DetectOptions
+    options?: DetectOptions,
   ): Promise<SpoofingResult | null> {
     const detection = await this.detect(image, options);
 

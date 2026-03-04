@@ -1,3 +1,4 @@
+import type { PlatformProvider } from "../core/platform.js";
 import { Base } from "../global.interface.js";
 
 /**
@@ -27,6 +28,10 @@ export abstract class BaseVerification extends Base {
   /** Verification configuration options */
   protected abstract verificationOptions: VerificationModelOptions;
 
+  constructor(platform?: PlatformProvider) {
+    super(platform);
+  }
+
   /**
    * Compares two face embeddings
    * @param embedding1 - First face embedding
@@ -37,6 +42,6 @@ export abstract class BaseVerification extends Base {
   abstract compare(
     embedding1: Float32Array,
     embedding2: Float32Array,
-    threshold?: number
+    threshold?: number,
   ): VerificationResult;
 }

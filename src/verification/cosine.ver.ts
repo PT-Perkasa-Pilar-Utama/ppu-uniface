@@ -1,3 +1,4 @@
+import type { PlatformProvider } from "../core/platform.js";
 import {
   BaseVerification,
   type VerificationModelOptions,
@@ -9,8 +10,11 @@ export class CosineVerification extends BaseVerification {
     threshold: 0.7,
   };
 
-  constructor(options: Partial<VerificationModelOptions> = {}) {
-    super();
+  constructor(
+    options: Partial<VerificationModelOptions> = {},
+    platform?: PlatformProvider,
+  ) {
+    super(platform);
     this.verificationOptions = {
       ...this.verificationOptions,
       ...options,
@@ -20,7 +24,7 @@ export class CosineVerification extends BaseVerification {
   compare(
     embedding1: Float32Array,
     embedding2: Float32Array,
-    threshold?: number
+    threshold?: number,
   ): VerificationResult {
     // Use provided threshold or fall back to model-level threshold
     const effectiveThreshold = threshold ?? this.verificationOptions.threshold;
@@ -28,7 +32,7 @@ export class CosineVerification extends BaseVerification {
     this.log("compare", `Starting cosine similarity calculation...`);
     this.log(
       "compare",
-      `Embedding sizes: ${embedding1.length} vs ${embedding2.length}`
+      `Embedding sizes: ${embedding1.length} vs ${embedding2.length}`,
     );
 
     this.log("compare", "Calculating dot product and norms...");
@@ -45,7 +49,7 @@ export class CosineVerification extends BaseVerification {
     this.log("compare", `Dot product calculated: ${dotProduct.toFixed(6)}`);
     this.log(
       "compare",
-      `Norm A squared: ${normA.toFixed(6)}, Norm B squared: ${normB.toFixed(6)}`
+      `Norm A squared: ${normA.toFixed(6)}, Norm B squared: ${normB.toFixed(6)}`,
     );
 
     if (normA === 0 || normB === 0) {
@@ -62,18 +66,18 @@ export class CosineVerification extends BaseVerification {
     this.log(
       "compare",
       `  Dot product: ${dotProduct.toFixed(6)}, NormA: ${Math.sqrt(
-        normA
-      ).toFixed(6)}, NormB: ${Math.sqrt(normB).toFixed(6)}`
+        normA,
+      ).toFixed(6)}, NormB: ${Math.sqrt(normB).toFixed(6)}`,
     );
     this.log(
       "compare",
       `  Cosine similarity: ${similarity.toFixed(6)} (${(
         similarity * 100
-      ).toFixed(2)}%)`
+      ).toFixed(2)}%)`,
     );
     this.log(
       "compare",
-      `  Threshold: ${effectiveThreshold}, Verified: ${similarity >= effectiveThreshold}`
+      `  Threshold: ${effectiveThreshold}, Verified: ${similarity >= effectiveThreshold}`,
     );
 
     return {

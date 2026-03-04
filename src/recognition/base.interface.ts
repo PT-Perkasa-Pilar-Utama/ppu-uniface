@@ -1,5 +1,5 @@
-import * as ort from "onnxruntime-node";
-import type { Canvas } from "ppu-ocv";
+import type { InferenceSession } from "onnxruntime-common";
+import type { CoreCanvas, PlatformProvider } from "../core/platform.js";
 import { Base } from "../global.interface.js";
 
 /**
@@ -34,7 +34,11 @@ export abstract class BaseRecognition extends Base {
   /** Recognition configuration options */
   protected abstract recognitionOptions: RecognitionModelOptions;
   /** ONNX inference session */
-  protected abstract session: ort.InferenceSession | null;
+  protected abstract session: InferenceSession | null;
+
+  constructor(platform?: PlatformProvider) {
+    super(platform);
+  }
 
   /** Initializes the recognition model */
   abstract initialize(): Promise<void>;
@@ -44,14 +48,16 @@ export abstract class BaseRecognition extends Base {
    * @param image - Input image as ArrayBuffer or Canvas
    * @returns Recognition result with embedding
    */
-  abstract recognize(image: ArrayBuffer | Canvas): Promise<RecognitionResult>;
+  abstract recognize(
+    image: ArrayBuffer | CoreCanvas,
+  ): Promise<RecognitionResult>;
 
   /**
    * Preprocesses image for model inference
    * @param canvas - Input canvas
    * @returns Preprocessed tensor
    */
-  abstract preprocess(canvas: Canvas): Float32Array;
+  abstract preprocess(canvas: CoreCanvas): Float32Array;
 
   /**
    * Runs model inference
@@ -59,8 +65,8 @@ export abstract class BaseRecognition extends Base {
    * @returns Model outputs
    */
   abstract inference(
-    tensor: Float32Array
-  ): Promise<ort.InferenceSession.OnnxValueMapType>;
+    tensor: Float32Array,
+  ): Promise<InferenceSession.OnnxValueMapType>;
 
   /**
    * Extracts embedding from model outputs
@@ -68,7 +74,7 @@ export abstract class BaseRecognition extends Base {
    * @returns Face embedding vector
    */
   abstract postprocess(
-    outputs: ort.InferenceSession.OnnxValueMapType
+    outputs: InferenceSession.OnnxValueMapType,
   ): Float32Array;
 
   /** Releases model resources */

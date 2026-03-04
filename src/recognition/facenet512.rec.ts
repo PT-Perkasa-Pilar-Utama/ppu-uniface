@@ -1,6 +1,6 @@
-import * as ort from "onnxruntime-node";
-import { ImageProcessor, type Canvas } from "ppu-ocv";
+import type { InferenceSession } from "onnxruntime-common";
 import { GITHUB_BASE_URL } from "../constant.js";
+import type { CoreCanvas, PlatformProvider } from "../core/platform.js";
 import {
   BaseRecognition,
   type RecognitionModelOptions,
@@ -10,7 +10,7 @@ import {
 export class FaceNet512Recognition extends BaseRecognition {
   protected override className: string = "FaceNet512Recognition";
   protected override modelPath: string = "recognition/facenet512.onnx";
-  protected override session: ort.InferenceSession | null = null;
+  protected override session: InferenceSession | null = null;
 
   protected override recognitionOptions: RecognitionModelOptions = {
     size: {
@@ -19,8 +19,11 @@ export class FaceNet512Recognition extends BaseRecognition {
     },
   };
 
-  constructor(options: Partial<RecognitionModelOptions> = {}) {
-    super();
+  constructor(
+    options: Partial<RecognitionModelOptions> = {},
+    platform?: PlatformProvider,
+  ) {
+    super(platform);
     this.recognitionOptions = {
       ...this.recognitionOptions,
       ...options,
@@ -33,25 +36,27 @@ export class FaceNet512Recognition extends BaseRecognition {
 
   async initialize(): Promise<void> {
     this.log("initialize", "Starting FaceNet512 initialization...");
-    await ImageProcessor.initRuntime();
+    await this.platform.initRuntime();
 
     const buffer = await this.loadResource(
       undefined,
-      `${GITHUB_BASE_URL}${this.modelPath}`
+      `${GITHUB_BASE_URL}${this.modelPath}`,
     );
 
-    this.session = await ort.InferenceSession.create(new Uint8Array(buffer));
+    this.session = await this.platform.ort.InferenceSession.create(
+      new Uint8Array(buffer),
+    );
 
     this.log("initialize", "FaceNet512 initialized");
   }
 
-  async recognize(image: ArrayBuffer | Canvas): Promise<RecognitionResult> {
+  async recognize(image: ArrayBuffer | CoreCanvas): Promise<RecognitionResult> {
     if (!this.isInitialized)
       throw Error(`${this.className} session was not initialized`);
 
     const canvas =
       image instanceof ArrayBuffer
-        ? await ImageProcessor.prepareCanvas(image)
+        ? await this.platform.prepareCanvas(image)
         : image;
 
     const tensor = this.preprocess(canvas);
@@ -63,7 +68,7 @@ export class FaceNet512Recognition extends BaseRecognition {
     };
   }
 
-  preprocess(canvas: Canvas): Float32Array {
+  preprocess(canvas: CoreCanvas): Float32Array {
     const { width, height } = canvas;
 
     const expectedHeight = this.recognitionOptions.size.input[1];
@@ -71,14 +76,19 @@ export class FaceNet512Recognition extends BaseRecognition {
 
     let resizedCanvas = canvas;
     if (width !== expectedWidth || height !== expectedHeight) {
-      const processor = new ImageProcessor(canvas);
-      resizedCanvas = processor
-        .resize({
-          width: expectedWidth,
-          height: expectedHeight,
-        })
-        .toCanvas();
-      processor.destroy();
+      resizedCanvas = this.platform.createCanvas(expectedWidth, expectedHeight);
+      const ctx = resizedCanvas.getContext("2d");
+      ctx.drawImage(
+        canvas,
+        0,
+        0,
+        width,
+        height,
+        0,
+        0,
+        expectedWidth,
+        expectedHeight,
+      );
     }
 
     const tensorSize =
@@ -90,7 +100,7 @@ export class FaceNet512Recognition extends BaseRecognition {
       0,
       0,
       expectedWidth,
-      expectedHeight
+      expectedHeight,
     ).data;
     const totalPixels = expectedHeight * expectedWidth;
     let ptr = 0;
@@ -111,25 +121,25 @@ export class FaceNet512Recognition extends BaseRecognition {
   }
 
   async inference(
-    tensor: Float32Array
-  ): Promise<ort.InferenceSession.OnnxValueMapType> {
+    tensor: Float32Array,
+  ): Promise<InferenceSession.OnnxValueMapType> {
     if (!this.isInitialized)
       throw Error(`${this.className} session was not initialized`);
 
-    const feeds: Record<string, ort.Tensor> = {};
+    const feeds: Record<string, any> = {};
     const inputName = this.session!.inputNames[0]!;
 
-    feeds[inputName] = new ort.Tensor(
+    feeds[inputName] = new this.platform.ort.Tensor(
       "float32",
       tensor,
-      this.recognitionOptions.size.input
+      this.recognitionOptions.size.input,
     );
 
     const result = await this.session!.run(feeds);
     return result;
   }
 
-  postprocess(outputs: ort.InferenceSession.OnnxValueMapType): Float32Array {
+  postprocess(outputs: InferenceSession.OnnxValueMapType): Float32Array {
     const outputName = this.session!.outputNames[0]!;
     const outputTensor = outputs[outputName]!;
     const embedding = outputTensor.data as Float32Array;

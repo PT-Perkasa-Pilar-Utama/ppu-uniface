@@ -15,7 +15,7 @@ export class LoggerConfig {
 export function logger(
   className: string,
   methodName: string,
-  message: string
+  message: string,
 ): void {
   if (!LoggerConfig.verbose) return;
 

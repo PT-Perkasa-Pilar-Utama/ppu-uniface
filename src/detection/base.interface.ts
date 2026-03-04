@@ -1,5 +1,5 @@
-import * as ort from "onnxruntime-node";
-import type { Canvas } from "ppu-ocv";
+import type { InferenceSession } from "onnxruntime-common";
+import type { CoreCanvas, PlatformProvider } from "../core/platform.js";
 import { Base } from "../global.interface.js";
 
 /**
@@ -65,7 +65,11 @@ export abstract class BaseDetection extends Base {
   /** Detection configuration options */
   protected abstract detectionOptions: DetectionModelOptions;
   /** ONNX inference session */
-  protected abstract session: ort.InferenceSession | null;
+  protected abstract session: InferenceSession | null;
+
+  constructor(platform?: PlatformProvider) {
+    super(platform);
+  }
 
   /** Initializes the detection model */
   abstract initialize(): Promise<void>;
@@ -77,8 +81,8 @@ export abstract class BaseDetection extends Base {
    * @returns Detection result or null if no face detected
    */
   abstract detect(
-    image: ArrayBuffer | Canvas,
-    options?: DetectOptions
+    image: ArrayBuffer | CoreCanvas,
+    options?: DetectOptions,
   ): Promise<DetectionResult | null>;
 
   /**
@@ -89,9 +93,9 @@ export abstract class BaseDetection extends Base {
    * @returns Preprocessed tensor
    */
   abstract preprocess(
-    image: Canvas,
+    image: CoreCanvas,
     height: number,
-    width: number
+    width: number,
   ): Float32Array;
 
   /**
@@ -102,16 +106,15 @@ export abstract class BaseDetection extends Base {
    */
   abstract inference(
     tensor: Float32Array,
-    shape: [number, number]
-  ): Promise<ort.InferenceSession.OnnxValueMapType>;
+    shape: [number, number],
+  ): Promise<InferenceSession.OnnxValueMapType>;
 
   /**
    * Postprocesses model outputs
    * @param outputs - Raw model outputs
-   * @param shape - Image shape [width, height]
    * @returns Processed boxes, scores, and landmarks
    */
-  abstract postprocess(outputs: ort.InferenceSession.OnnxValueMapType): {
+  abstract postprocess(outputs: InferenceSession.OnnxValueMapType): {
     boxes: Float32Array;
     scores: Float32Array;
     landmarks: Float32Array;
@@ -134,7 +137,7 @@ export abstract class BaseDetection extends Base {
    * @returns Flat array of anchor boxes [cx, cy, w, h, ...]
    */
   protected generateAnchors(
-    imageSize: [number, number] = [640, 640]
+    imageSize: [number, number] = [640, 640],
   ): Float32Array {
     const steps = [8, 16, 32];
     const minSizes = [
@@ -174,16 +177,11 @@ export abstract class BaseDetection extends Base {
   /**
    * Decode locations from predictions using priors to undo
    * the encoding done for offset regression at train time.
-   *
-   * @param loc - Location predictions for loc layers, shape: [num_priors, 4]
-   * @param priors - Prior boxes in center-offset form, shape: [num_priors, 4]
-   * @param variances - Variances of prior boxes
-   * @returns Decoded bounding box predictions
    */
   protected decodeBoxes(
     loc: Float32Array,
     priors: Float32Array,
-    variances: [number, number] = [0.1, 0.2]
+    variances: [number, number] = [0.1, 0.2],
   ): Float32Array {
     const numPriors = loc.length / 4;
     const boxes = new Float32Array(loc.length);
@@ -191,20 +189,17 @@ export abstract class BaseDetection extends Base {
     for (let i = 0; i < numPriors; i++) {
       const idx = i * 4;
 
-      // Compute centers of predicted boxes
       const cx = priors[idx]! + loc[idx]! * variances[0] * priors[idx + 2]!;
       const cy =
         priors[idx + 1]! + loc[idx + 1]! * variances[0] * priors[idx + 3]!;
 
-      // Compute widths and heights of predicted boxes
       const w = priors[idx + 2]! * Math.exp(loc[idx + 2]! * variances[1]);
       const h = priors[idx + 3]! * Math.exp(loc[idx + 3]! * variances[1]);
 
-      // Convert center, size to corner coordinates
-      boxes[idx] = cx - w / 2; // xmin
-      boxes[idx + 1] = cy - h / 2; // ymin
-      boxes[idx + 2] = cx + w / 2; // xmax
-      boxes[idx + 3] = cy + h / 2; // ymax
+      boxes[idx] = cx - w / 2;
+      boxes[idx + 1] = cy - h / 2;
+      boxes[idx + 2] = cx + w / 2;
+      boxes[idx + 3] = cy + h / 2;
     }
 
     return boxes;
@@ -212,16 +207,11 @@ export abstract class BaseDetection extends Base {
 
   /**
    * Decode landmark predictions using prior boxes.
-   *
-   * @param predictions - Landmark predictions, shape: [num_priors, 10]
-   * @param priors - Prior boxes, shape: [num_priors, 4]
-   * @param variances - Scaling factors for landmark offsets
-   * @returns Decoded landmarks, shape: [num_priors, 10]
    */
   protected decodeLandmarks(
     predictions: Float32Array,
     priors: Float32Array,
-    variances: [number, number] = [0.1, 0.2]
+    variances: [number, number] = [0.1, 0.2],
   ): Float32Array {
     const numPriors = predictions.length / 10;
     const landmarks = new Float32Array(predictions.length);
@@ -235,14 +225,12 @@ export abstract class BaseDetection extends Base {
       const priorW = priors[priorIdx + 2]!;
       const priorH = priors[priorIdx + 3]!;
 
-      // Decode 5 landmark points (x, y pairs)
       for (let j = 0; j < 5; j++) {
         const idx = landmarkIdx + j * 2;
 
-        // Compute absolute landmark positions
-        landmarks[idx] = priorCx + predictions[idx]! * variances[0] * priorW; // x
+        landmarks[idx] = priorCx + predictions[idx]! * variances[0] * priorW;
         landmarks[idx + 1] =
-          priorCy + predictions[idx + 1]! * variances[0] * priorH; // y
+          priorCy + predictions[idx + 1]! * variances[0] * priorH;
       }
     }
 
@@ -251,16 +239,11 @@ export abstract class BaseDetection extends Base {
 
   /**
    * Apply Non-Maximum Suppression (NMS) to reduce overlapping bounding boxes.
-   *
-   * @param dets - Array of detections [x1, y1, x2, y2, score] stored as flat array
-   * @param numDets - Number of detections
-   * @param threshold - IoU threshold for suppression
-   * @returns Indices of bounding boxes retained after suppression
    */
   protected nonMaximumSuppression(
     dets: Float32Array,
     numDets: number,
-    threshold: number
+    threshold: number,
   ): number[] {
     if (numDets === 0) return [];
 

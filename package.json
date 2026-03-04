@@ -1,6 +1,6 @@
 {
   "name": "ppu-uniface",
-  "version": "2.4.0",
+  "version": "3.0.0",
   "description": "Typescript, type-safe, opinionated port of python's uniface: a comprehensive library for face detection, recognition, ~~landmark analysis, age, and gender detection.~~",
   "keywords": [
     "bun-compatible",
@@ -20,47 +20,63 @@
     "deep-insight",
     "cosine-similarity",
     "face-alignment",
-    "face-landmarks"
+    "face-landmarks",
+    "web-face-recognition",
+    "browser",
+    "onnxruntime-web"
   ],
   "author": "snowfluke",
   "license": "MIT",
   "type": "module",
   "main": "./index.js",
   "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./web": {
+      "types": "./web/index.d.ts",
+      "default": "./web/index.js"
+    }
+  },
   "scripts": {
     "task": "bun scripts/task.ts",
     "benchmark": "bun task bench",
     "build:test": "bun task build && bun test",
     "build:publish": "bun task build && bun task report-size && bun task publish",
-    "lint": "eslint ./src",
-    "lint:fix": "eslint ./src --fix",
+    "lint": "prettier --check ./src",
+    "lint:fix": "prettier --write ./src",
     "inspect": "bun run scripts/inspect-onnx.ts",
-    "warmup": "bun run scripts/warmup.ts"
+    "warmup": "bun run scripts/warmup.ts",
+    "demo": "bunx -y serve -l 1212 ."
   },
   "devDependencies": {
-    "@stylistic/eslint-plugin": "latest",
     "@types/bun": "latest",
-    "@types/lodash.merge": "^4.6.9",
     "@types/uglify-js": "latest",
-    "eslint": "latest",
-    "eslint-plugin-jsdoc": "latest",
     "mitata": "latest",
+    "onnxruntime-node": "^1.23.2",
+    "onnxruntime-web": "^1.23.2",
     "prettier": "3.6.2",
     "tsx": "latest",
     "typescript": "latest",
-    "typescript-eslint": "latest",
-    "uglify-js": ">=2.4.24",
-    "onnxruntime-node": "^1.23.2"
+    "uglify-js": ">=2.4.24"
   },
   "peerDependencies": {
     "typescript": "^5",
     "onnxruntime-node": "^1.23.2"
+  },
+  "peerDependenciesMeta": {
+    "onnxruntime-node": {
+      "optional": true
+    }
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/PT-Perkasa-Pilar-Utama/ppu-uniface.git"
   },
   "dependencies": {
-    "ppu-ocv": "^1.7.0"
+    "onnxruntime-common": "^1.23.2",
+    "ppu-ocv": "^2.0.0"
   }
 }

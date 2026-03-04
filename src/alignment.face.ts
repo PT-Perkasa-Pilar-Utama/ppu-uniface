@@ -1,27 +1,28 @@
-import { CanvasToolkit, cv, ImageProcessor, type Canvas } from "ppu-ocv";
+import type { CoreCanvas, PlatformProvider } from "./core/platform.js";
 import type { DetectionResult } from "./detection/base.interface.js";
 
 /**
  * Aligns and crops a face from an image based on detection results
  * @param image - Input image as ArrayBuffer or Canvas
  * @param detection - Face detection result containing landmarks and bounding box
+ * @param platform - Platform provider for cross-platform canvas operations
  * @returns Cropped and aligned face canvas
  */
 export async function alignAndCropFace(
-  image: ArrayBuffer | Canvas,
-  detection: DetectionResult
-): Promise<Canvas> {
+  image: ArrayBuffer | CoreCanvas,
+  detection: DetectionResult,
+  platform: PlatformProvider,
+): Promise<CoreCanvas> {
   const canvas =
-    image instanceof ArrayBuffer
-      ? await ImageProcessor.prepareCanvas(image)
-      : image;
+    image instanceof ArrayBuffer ? await platform.prepareCanvas(image) : image;
 
   const { canvas: alignedCanvas, detection: alignedDetection } = alignFace(
     canvas,
-    detection
+    detection,
+    platform,
   );
 
-  const croppedCanvas = cropFace(alignedCanvas, alignedDetection);
+  const croppedCanvas = cropFace(alignedCanvas, alignedDetection, platform);
 
   return croppedCanvas;
 }
@@ -30,12 +31,14 @@ export async function alignAndCropFace(
  * Rotates face to align eyes horizontally
  * @param canvas - Input canvas containing the face
  * @param detection - Face detection result with landmarks
+ * @param platform - Platform provider for cross-platform canvas operations
  * @returns Aligned canvas and updated detection result
  */
 export function alignFace(
-  canvas: Canvas,
-  detection: DetectionResult
-): { canvas: Canvas; detection: DetectionResult } {
+  canvas: CoreCanvas,
+  detection: DetectionResult,
+  platform: PlatformProvider,
+): { canvas: CoreCanvas; detection: DetectionResult } {
   const landmarks = detection.landmarks;
   if (!landmarks || landmarks.length < 2) {
     return { canvas, detection };
@@ -54,14 +57,14 @@ export function alignFace(
 
   const center = { x: canvas.width / 2, y: canvas.height / 2 };
 
-  const processor = new ImageProcessor(canvas);
-  const rotatedCanvas = processor
-    .rotate({
-      angle: angle,
-      center: new cv.Point(center.x, center.y),
-    })
-    .toCanvas();
-  processor.destroy();
+  // Rotate using canvas 2D transform (platform-agnostic)
+  const rotatedCanvas = platform.createCanvas(canvas.width, canvas.height);
+  const ctx = rotatedCanvas.getContext("2d");
+  const rad = (-angle * Math.PI) / 180;
+  ctx.translate(center.x, center.y);
+  ctx.rotate(rad);
+  ctx.translate(-center.x, -center.y);
+  ctx.drawImage(canvas, 0, 0);
 
   const box = detection.box;
   const corners = [
@@ -113,7 +116,7 @@ export function alignFace(
 function rotatePoint(
   point: { x: number; y: number },
   center: { x: number; y: number },
-  angle: number
+  angle: number,
 ) {
   const radians = (-angle * Math.PI) / 180;
   const cos = Math.cos(radians);
@@ -134,10 +137,14 @@ function rotatePoint(
  * Crops face region from canvas based on bounding box
  * @param canvas - Input canvas
  * @param detection - Detection result with bounding box
+ * @param platform - Platform provider for cross-platform canvas operations
  * @returns Cropped face canvas
  */
-export function cropFace(canvas: Canvas, detection: DetectionResult): Canvas {
-  const toolkit = CanvasToolkit.getInstance();
+export function cropFace(
+  canvas: CoreCanvas,
+  detection: DetectionResult,
+  platform: PlatformProvider,
+): CoreCanvas {
   const box = detection.box;
 
   const x0 = Math.max(0, box.x);
@@ -145,10 +152,22 @@ export function cropFace(canvas: Canvas, detection: DetectionResult): Canvas {
   const x1 = Math.min(canvas.width, box.x + box.width);
   const y1 = Math.min(canvas.height, box.y + box.height);
 
-  const croppedCanvas = toolkit.crop({
+  const cropWidth = x1 - x0;
+  const cropHeight = y1 - y0;
+
+  const croppedCanvas = platform.createCanvas(cropWidth, cropHeight);
+  const ctx = croppedCanvas.getContext("2d");
+  ctx.drawImage(
     canvas,
-    bbox: { x0, y0, x1, y1 },
-  });
+    x0,
+    y0,
+    cropWidth,
+    cropHeight,
+    0,
+    0,
+    cropWidth,
+    cropHeight,
+  );
 
   return croppedCanvas;
 }

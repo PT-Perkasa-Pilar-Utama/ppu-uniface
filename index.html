@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ppu-uniface: Face detection, recognition, verification, and anti-spoofing running entirely in the browser using ONNX Web Runtime." />
+  <title>ppu-uniface | Web Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #ffffff;
+      --bg-secondary: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --primary: hsl(221, 83%, 53%);
+      --primary-hover: hsl(221, 83%, 48%);
+      --primary-light: hsl(221, 83%, 95%);
+      --primary-fg: #ffffff;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --muted-bg: #f1f5f9;
+      --radius: 8px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-lg: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+      --transition: 0.15s ease;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Container */
+    .container { max-width: 960px; margin: 0 auto; padding: 0 1rem; }
+
+    /* Header */
+    .header { padding: 2.5rem 0 1.5rem; text-align: center; }
+    .header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.025em; }
+    .header p { color: var(--text-muted); margin-top: 0.25rem; font-size: 0.95rem; }
+    .header-links { margin-top: 0.75rem; display: flex; gap: 1.25rem; justify-content: center; }
+    .header-links a {
+      color: var(--text-muted); text-decoration: none; font-size: 0.8rem; font-weight: 500;
+      transition: color var(--transition);
+    }
+    .header-links a:hover { color: var(--primary); }
+    .header-badge {
+      display: inline-block; margin-top: 0.75rem; padding: 0.25rem 0.75rem;
+      background: var(--primary-light); color: var(--primary);
+      border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+
+    /* Status bar */
+    .status-bar {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.75rem 1rem; background: var(--card-bg);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      margin-bottom: 1.25rem; box-shadow: var(--shadow-sm);
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; }
+    .status-dot.loading { background: var(--warning); animation: pulse 1.2s infinite; }
+    .status-dot.ready { background: var(--success); }
+    .status-dot.error { background: var(--danger); }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .status-text { font-size: 0.8rem; color: var(--text-muted); flex: 1; }
+    .btn-primary {
+      padding: 0.5rem 1rem; background: var(--primary); color: var(--primary-fg);
+      border: none; border-radius: var(--radius); font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; transition: background var(--transition); font-family: inherit;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Navigation tabs */
+    .nav { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .nav-btn {
+      padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text-muted); font-size: 0.8rem;
+      font-weight: 500; cursor: pointer; transition: all var(--transition); font-family: inherit;
+    }
+    .nav-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .nav-btn.active { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Card */
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      transition: box-shadow var(--transition);
+    }
+    .card:hover { box-shadow: var(--shadow-lg); }
+    .card-header { padding: 1rem 1.25rem 0; }
+    .card-title { font-size: 0.95rem; font-weight: 600; }
+    .card-body { padding: 1rem 1.25rem 1.25rem; }
+
+    /* Two-column grid */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    /* Page title */
+    .page-title { font-size: 1.5rem; font-weight: 700; text-align: center; margin-bottom: 1.25rem; }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed var(--border); border-radius: var(--radius);
+      padding: 2rem 1rem; text-align: center; cursor: pointer;
+      transition: all var(--transition); position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: var(--primary); background: var(--primary-light); }
+    .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .drop-zone-icon { width: 40px; height: 40px; margin: 0 auto 0.75rem; color: var(--text-muted); }
+    .drop-zone p { font-size: 0.85rem; font-weight: 500; margin-bottom: 0.25rem; }
+    .drop-zone .hint { font-size: 0.75rem; color: var(--text-dim); }
+
+    /* Image preview area */
+    .img-preview {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--muted-bg); min-height: 250px; display: flex;
+      align-items: center; justify-content: center; overflow: hidden;
+      position: relative;
+    }
+    .img-preview img { max-width: 100%; max-height: 300px; display: block; }
+    .img-preview canvas {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .img-preview .placeholder { color: var(--text-dim); font-size: 0.85rem; }
+
+    /* Sample selector */
+    .samples { margin-top: 0.75rem; }
+    .samples-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; margin-bottom: 0.4rem; }
+    .samples-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .sample-btn {
+      padding: 0.3rem 0.6rem; background: transparent; border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 0.7rem; font-weight: 500; cursor: pointer;
+      color: var(--text-muted); transition: all var(--transition); font-family: inherit;
+    }
+    .sample-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* Button full-width */
+    .btn-block {
+      width: 100%; padding: 0.6rem; margin-top: 0.75rem;
+      background: var(--primary); color: var(--primary-fg);
+      border: none; border-radius: var(--radius); font-size: 0.85rem;
+      font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: background var(--transition);
+    }
+    .btn-block:hover { background: var(--primary-hover); }
+    .btn-block:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-outline {
+      width: 100%; padding: 0.5rem; margin-top: 0.5rem;
+      background: transparent; color: var(--text); border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 0.8rem; font-weight: 500;
+      cursor: pointer; font-family: inherit; transition: all var(--transition);
+    }
+    .btn-outline:hover { border-color: var(--text-muted); }
+
+    /* Result card */
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.75rem; }
+    .result-item {
+      background: var(--muted-bg); padding: 0.75rem; border-radius: var(--radius);
+    }
+    .result-item .label { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.15rem; }
+    .result-item .value { font-size: 1.1rem; font-weight: 700; }
+    .result-item .value.success { color: var(--success); }
+    .result-item .value.danger { color: var(--danger); }
+    .result-item .value.warning { color: var(--warning); }
+
+    /* Response time */
+    .response-time {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.8rem; margin-top: 0.75rem;
+    }
+    .response-time .label { font-weight: 500; }
+    .response-time .val { color: var(--text-muted); }
+
+    /* Full response JSON */
+    .json-block { margin-top: 0.75rem; }
+    .json-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;
+    }
+    .json-header span { font-size: 0.8rem; font-weight: 500; }
+    .json-copy {
+      padding: 0.25rem 0.5rem; background: transparent; border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 0.7rem; cursor: pointer;
+      color: var(--text-muted); font-family: inherit; transition: all var(--transition);
+    }
+    .json-copy:hover { border-color: var(--text-muted); }
+    .json-pre {
+      background: var(--muted-bg); padding: 0.75rem; border-radius: var(--radius);
+      overflow: auto; font-size: 0.7rem; max-height: 200px;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      line-height: 1.5; white-space: pre-wrap; word-break: break-all;
+    }
+
+    /* Similarity bar */
+    .sim-bar-outer {
+      margin-top: 0.5rem; background: var(--muted-bg);
+      border-radius: 999px; height: 6px; overflow: hidden;
+    }
+    .sim-bar-inner {
+      height: 100%; border-radius: 999px;
+      transition: width 0.5s ease;
+      background: linear-gradient(90deg, var(--danger), var(--warning), var(--success));
+    }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+      border-radius: 50%; animation: spin 0.6s linear infinite;
+      vertical-align: middle; margin-right: 0.4rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Two-image zone */
+    .two-images { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    @media (max-width: 500px) { .two-images { grid-template-columns: 1fr; } }
+
+    /* Webcam */
+    .webcam-wrap { position: relative; background: #000; border-radius: var(--radius); overflow: hidden; min-height: 250px; display: flex; align-items: center; justify-content: center; }
+    .webcam-wrap video { width: 100%; display: block; }
+    .webcam-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(34,197,94,0.15); backdrop-filter: blur(4px); }
+    .webcam-overlay .check-circle { width: 64px; height: 64px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-lg); }
+    .webcam-overlay .check-circle svg { color: var(--success); width: 40px; height: 40px; }
+    .slider-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.25rem; }
+    .slider-row .mono { font-family: 'SF Mono', monospace; color: var(--text-muted); font-size: 0.75rem; }
+    input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
+    .scan-status { text-align: center; font-size: 0.8rem; color: var(--text-muted); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+    .success-msg { text-align: center; }
+    .success-msg h3 { font-size: 1.25rem; font-weight: 700; color: var(--success); }
+    .success-msg p { color: var(--text-muted); font-size: 0.85rem; }
+
+    /* Face DB */
+    .mode-toggle { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1rem; }
+    .mode-btn { padding: 0.45rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: transparent; color: var(--text-muted); font-size: 0.8rem; font-weight: 500; cursor: pointer; font-family: inherit; transition: all var(--transition); }
+    .mode-btn.active { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+    .input-field { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem; font-family: inherit; background: var(--bg); color: var(--text); }
+    .input-field:focus { outline: none; border-color: var(--primary); }
+    .input-label { font-size: 0.8rem; font-weight: 500; margin-bottom: 0.25rem; display: block; }
+    .face-entry { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); transition: background var(--transition); }
+    .face-entry:hover { background: var(--muted-bg); }
+    .face-entry + .face-entry { margin-top: 0.4rem; }
+    .face-name { font-weight: 500; font-size: 0.85rem; }
+    .face-date { font-size: 0.7rem; color: var(--text-dim); }
+    .face-sim { font-family: 'SF Mono', monospace; font-weight: 700; font-size: 1rem; }
+    .face-sim.success { color: var(--success); }
+    .face-sim.warning { color: var(--warning); }
+    .grid-3 { display: grid; grid-template-columns: 1fr 2fr; gap: 1.25rem; }
+    @media (max-width: 700px) { .grid-3 { grid-template-columns: 1fr; } }
+    .face-delete { padding: 0.2rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: transparent; color: var(--text-dim); font-size: 0.65rem; cursor: pointer; font-family: inherit; }
+    .face-delete:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* Footer */
+    .footer {
+      text-align: center; padding: 1.5rem 0; color: var(--text-dim);
+      font-size: 0.75rem; border-top: 1px solid var(--border); margin-top: 2rem;
+    }
+    .footer a { color: var(--text-muted); text-decoration: none; }
+    .footer a:hover { color: var(--primary); }
+
+    .space-y > * + * { margin-top: 0.75rem; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <h1>PPU Uniface Demo</h1>
+      <p>Explore the capabilities of the ppu-uniface library.</p>
+      <span class="header-badge">Client-side &mdash; Running via ONNX Web Runtime</span>
+      <div class="header-links">
+        <a href="https://github.com/PT-Perkasa-Pilar-Utama/ppu-uniface" target="_blank">GitHub</a>
+        <a href="https://www.npmjs.com/package/ppu-uniface" target="_blank">npm</a>
+        <a href="https://github.com/PT-Perkasa-Pilar-Utama/ppu-uniface-demo" target="_blank">Server Demo</a>
+      </div>
+    </header>
+
+    <!-- Status -->
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="status-text" id="statusText">Click "Initialize" to load models (~100MB on first load)</span>
+      <button class="btn-primary" id="initBtn" onclick="initializeUniface()">Initialize</button>
+    </div>
+
+    <!-- Navigation and Main App Content -->
+    <div id="main-app" style="display:none; margin-top: 1rem;">
+      <nav class="nav" role="tablist">
+        <button class="nav-btn active" onclick="switchTab('detect')" id="tab-detect">Face Detection</button>
+      <button class="nav-btn" onclick="switchTab('recognize')" id="tab-recognize">Face Recognition</button>
+      <button class="nav-btn" onclick="switchTab('spoofing')" id="tab-spoofing">Spoofing Detection</button>
+      <button class="nav-btn" onclick="switchTab('verify')" id="tab-verify">Face Verification</button>
+      <button class="nav-btn" onclick="switchTab('attendance')" id="tab-attendance">Attendance</button>
+      <button class="nav-btn" onclick="switchTab('search')" id="tab-search">Face Search</button>
+    </nav>
+
+    <!-- ==================== DETECT ==================== -->
+    <div class="tab-panel active" id="panel-detect">
+      <h2 class="page-title">Face Detection</h2>
+      <div class="grid-2">
+        <!-- Input -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">Input</div></div>
+          <div class="card-body space-y">
+            <div id="detect-upload-area">
+              <div class="drop-zone" id="detect-drop">
+                <input type="file" accept="image/*" onchange="handleFile(event, 'detect')" />
+                <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <p>Click to upload or drag and drop</p>
+                <span class="hint">PNG, JPG, JPEG up to 10MB</span>
+              </div>
+            </div>
+            <div id="detect-selected" style="display:none">
+              <div class="img-preview"><img id="detect-img" /></div>
+              <button class="btn-outline" onclick="clearImage('detect')">Change Image</button>
+            </div>
+            <div class="samples">
+              <div class="samples-label">Or use sample images:</div>
+              <div class="samples-row" id="detect-samples"></div>
+            </div>
+            <button class="btn-block" id="detect-btn" onclick="runDetection()" disabled>Detect Face</button>
+          </div>
+        </div>
+        <!-- Result -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">Result</div></div>
+          <div class="card-body space-y">
+            <div class="img-preview" id="detect-result-preview">
+              <canvas id="detect-canvas" style="display:none"></canvas>
+              <span class="placeholder" id="detect-placeholder">Upload an image to start</span>
+            </div>
+            <div id="detect-time"></div>
+            <div id="detect-result"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== RECOGNIZE ==================== -->
+    <div class="tab-panel" id="panel-recognize">
+      <h2 class="page-title">Face Recognition</h2>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Input</div></div>
+          <div class="card-body space-y">
+            <div id="recognize-upload-area">
+              <div class="drop-zone" id="recognize-drop">
+                <input type="file" accept="image/*" onchange="handleFile(event, 'recognize')" />
+                <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <p>Click to upload or drag and drop</p>
+                <span class="hint">PNG, JPG, JPEG up to 10MB</span>
+              </div>
+            </div>
+            <div id="recognize-selected" style="display:none">
+              <div class="img-preview"><img id="recognize-img" /></div>
+              <button class="btn-outline" onclick="clearImage('recognize')">Change Image</button>
+            </div>
+            <div class="samples">
+              <div class="samples-label">Or use sample images:</div>
+              <div class="samples-row" id="recognize-samples"></div>
+            </div>
+            <button class="btn-block" id="recognize-btn" onclick="runRecognition()" disabled>Generate Embedding</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Result</div></div>
+          <div class="card-body space-y">
+            <div id="recognize-time"></div>
+            <div id="recognize-result"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SPOOFING ==================== -->
+    <div class="tab-panel" id="panel-spoofing">
+      <h2 class="page-title">Spoofing Detection</h2>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Input</div></div>
+          <div class="card-body space-y">
+            <div id="spoofing-upload-area">
+              <div class="drop-zone" id="spoofing-drop">
+                <input type="file" accept="image/*" onchange="handleFile(event, 'spoofing')" />
+                <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <p>Click to upload or drag and drop</p>
+                <span class="hint">PNG, JPG, JPEG up to 10MB</span>
+              </div>
+            </div>
+            <div id="spoofing-selected" style="display:none">
+              <div class="img-preview"><img id="spoofing-img" /></div>
+              <button class="btn-outline" onclick="clearImage('spoofing')">Change Image</button>
+            </div>
+            <div class="samples">
+              <div class="samples-label">Or use sample images:</div>
+              <div class="samples-row" id="spoofing-samples"></div>
+            </div>
+            <button class="btn-block" id="spoofing-btn" onclick="runSpoofing()" disabled>Analyze Image</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Result</div></div>
+          <div class="card-body space-y">
+            <div id="spoofing-time"></div>
+            <div id="spoofing-result"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== VERIFY ==================== -->
+    <div class="tab-panel" id="panel-verify">
+      <h2 class="page-title">Face Verification</h2>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Input</div></div>
+        <div class="card-body space-y">
+          <div class="two-images">
+            <div>
+              <div id="verify1-upload-area">
+                <div class="drop-zone" id="verify1-drop">
+                  <input type="file" accept="image/*" onchange="handleFile(event, 'verify1')" />
+                  <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <p>Face 1</p>
+                  <span class="hint">Click to browse</span>
+                </div>
+              </div>
+              <div id="verify1-selected" style="display:none">
+                <div class="img-preview"><img id="verify1-img" /></div>
+                <button class="btn-outline" onclick="clearImage('verify1')">Change Image</button>
+              </div>
+              <div class="samples" style="margin-top:0.5rem">
+                <div class="samples-row" id="verify1-samples"></div>
+              </div>
+            </div>
+            <div>
+              <div id="verify2-upload-area">
+                <div class="drop-zone" id="verify2-drop">
+                  <input type="file" accept="image/*" onchange="handleFile(event, 'verify2')" />
+                  <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <p>Face 2</p>
+                  <span class="hint">Click to browse</span>
+                </div>
+              </div>
+              <div id="verify2-selected" style="display:none">
+                <div class="img-preview"><img id="verify2-img" /></div>
+                <button class="btn-outline" onclick="clearImage('verify2')">Change Image</button>
+              </div>
+              <div class="samples" style="margin-top:0.5rem">
+                <div class="samples-row" id="verify2-samples"></div>
+              </div>
+            </div>
+          </div>
+          <button class="btn-block" id="verify-btn" onclick="runVerification()" disabled>Verify Faces</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:1.25rem">
+        <div class="card-header"><div class="card-title">Result</div></div>
+        <div class="card-body space-y">
+          <div id="verify-time"></div>
+          <div id="verify-result"><span class="placeholder">Upload two images to start</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ATTENDANCE ==================== -->
+    <div class="tab-panel" id="panel-attendance">
+      <h2 class="page-title">Attendance Simulation</h2>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Target Person</div></div>
+          <div class="card-body space-y">
+            <div id="att-upload-area">
+              <div class="drop-zone" id="att-drop">
+                <input type="file" accept="image/*" onchange="handleFile(event, 'att')" />
+                <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <p>Upload target face</p>
+                <span class="hint">PNG, JPG, JPEG</span>
+              </div>
+            </div>
+            <div id="att-selected" style="display:none">
+              <div class="img-preview"><img id="att-img" /></div>
+              <button class="btn-outline" onclick="clearImage('att')">Change Target</button>
+            </div>
+            <div class="samples">
+              <div class="samples-label">Or use sample images:</div>
+              <div class="samples-row" id="att-samples"></div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:0.75rem;margin-top:0.75rem">
+              <div class="slider-row"><span>Threshold</span><span class="mono" id="att-thresh-val">70%</span></div>
+              <input type="range" min="50" max="95" value="70" id="att-thresh" oninput="document.getElementById('att-thresh-val').textContent=this.value+'%'" />
+              <div class="slider-row" style="margin-top:0.5rem"><span>Checks / sec</span><span class="mono" id="att-fps-val">0.5/s</span></div>
+              <input type="range" min="2" max="20" value="5" id="att-fps" oninput="document.getElementById('att-fps-val').textContent=(this.value/10).toFixed(1)+'/s'" />
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Live Camera</div></div>
+          <div class="card-body space-y">
+            <div class="webcam-wrap" id="att-webcam-wrap">
+              <video id="att-video" autoplay playsinline muted></video>
+              <div class="webcam-overlay" id="att-overlay" style="display:none">
+                <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg></div>
+              </div>
+            </div>
+            <div id="att-status-area">
+              <button class="btn-block" id="att-start-btn" onclick="startAttendance()" disabled>Start Attendance Check</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== FACE SEARCH ==================== -->
+    <div class="tab-panel" id="panel-search">
+      <h2 class="page-title">Face Search &amp; Database</h2>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="mode-search-btn" onclick="setSearchMode('search')">Search Face</button>
+        <button class="mode-btn" id="mode-add-btn" onclick="setSearchMode('add')">Add to Database</button>
+      </div>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-header"><div class="card-title" id="search-card-title">Search Input</div></div>
+          <div class="card-body space-y">
+            <div id="search-upload-area">
+              <div class="drop-zone" id="search-drop">
+                <input type="file" accept="image/*" onchange="handleFile(event, 'search')" />
+                <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <p>Click to upload or drag and drop</p>
+                <span class="hint">PNG, JPG, JPEG</span>
+              </div>
+            </div>
+            <div id="search-selected" style="display:none">
+              <div class="img-preview"><img id="search-img" /></div>
+              <button class="btn-outline" onclick="clearImage('search')">Change Image</button>
+            </div>
+            <div class="samples">
+              <div class="samples-label">Or use sample images:</div>
+              <div class="samples-row" id="search-samples"></div>
+            </div>
+            <div id="search-name-field" style="display:none">
+              <label class="input-label">Name</label>
+              <input class="input-field" id="search-name" placeholder="Enter person's name" oninput="updateButtons()" />
+            </div>
+            <button class="btn-block" id="search-btn" onclick="runSearch()" disabled>Search Database</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title" id="search-result-title">Search Results</div></div>
+          <div class="card-body space-y">
+            <div id="search-result"><span class="placeholder">No matches found or search not started.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </div> <!-- /main-app -->
+
+  </div>
+
+  <footer class="footer container">
+    <p>
+      ppu-uniface &middot;
+      <a href="https://github.com/PT-Perkasa-Pilar-Utama/ppu-uniface" target="_blank">Source</a> &middot;
+      <a href="https://www.npmjs.com/package/ppu-uniface" target="_blank">npm</a> &middot;
+      MIT License
+    </p>
+  </footer>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.all.bundle.min.mjs",
+      "onnxruntime-common": "https://cdn.jsdelivr.net/npm/onnxruntime-common@1.23.2/dist/ort-common.min.mjs",
+      "ppu-ocv/web": "https://cdn.jsdelivr.net/npm/ppu-ocv@2/index.web.js",
+      "ppu-uniface/web": "./lib/web/index.js",
+      "ppu-uniface/": "./lib/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    // ─── State ─────────────────────────────────────────────
+    let uniface = null;
+    let isInitialized = false;
+    let attScanning = false;
+    let attInterval = null;
+    let attStream = null;
+    let searchMode = 'search';
+    const imageBuffers = {};
+    const SAMPLE_BASE = 'https://raw.githubusercontent.com/PT-Perkasa-Pilar-Utama/ppu-uniface/main/assets/';
+    const SAMPLES = [
+      { path: 'image-haaland1.jpeg', name: 'Haaland 1' },
+      { path: 'image-haaland2.png',  name: 'Haaland 2' },
+      { path: 'image-kevin1.png',    name: 'Kevin 1' },
+      { path: 'image-kevin2.jpg',    name: 'Kevin 2' },
+      { path: 'image-magnus1.png',   name: 'Magnus 1' },
+      { path: 'image-magnus2.png',   name: 'Magnus 2' },
+      { path: 'image-tdf-many.png',  name: 'Multiple' },
+      { path: 'image-fake1.jpg',     name: 'Fake 1' },
+      { path: 'image-fake2.jpg',     name: 'Fake 2' },
+    ];
+
+    // Expose to onclick
+    window.initializeUniface = initializeUniface;
+    window.switchTab = switchTab;
+    window.handleFile = handleFile;
+    window.clearImage = clearImage;
+    window.runDetection = runDetection;
+    window.runRecognition = runRecognition;
+    window.runVerification = runVerification;
+    window.runSpoofing = runSpoofing;
+    window.startAttendance = startAttendance;
+    window.stopAttendance = stopAttendance;
+    window.setSearchMode = setSearchMode;
+    window.runSearch = runSearch;
+    window.deleteFace = deleteFace;
+    window.updateButtons = updateButtons;
+
+    // ─── Populate sample buttons ───────────────────────────
+    for (const id of ['detect', 'recognize', 'spoofing', 'verify1', 'verify2', 'att', 'search']) {
+      const container = document.getElementById(`${id}-samples`);
+      if (!container) continue;
+      for (const s of SAMPLES) {
+        const btn = document.createElement('button');
+        btn.className = 'sample-btn';
+        btn.textContent = s.name;
+        btn.onclick = () => loadSample(s.path, id);
+        container.appendChild(btn);
+      }
+    }
+
+    async function loadSample(filename, target) {
+      const url = SAMPLE_BASE + filename;
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const arrBuf = await blob.arrayBuffer();
+      imageBuffers[target] = arrBuf;
+      const imgEl = document.getElementById(`${target}-img`);
+      if (imgEl) {
+        imgEl.src = URL.createObjectURL(blob);
+        document.getElementById(`${target}-upload-area`).style.display = 'none';
+        document.getElementById(`${target}-selected`).style.display = 'block';
+      }
+      updateButtons();
+    }
+
+    // ─── Tab Management ────────────────────────────────────
+    function switchTab(name) {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(`tab-${name}`)?.classList.add('active');
+      document.getElementById(`panel-${name}`)?.classList.add('active');
+    }
+
+    // ─── File Handling ─────────────────────────────────────
+    function handleFile(event, target) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        imageBuffers[target] = e.target.result;
+        const imgEl = document.getElementById(`${target}-img`);
+        if (imgEl) {
+          imgEl.src = URL.createObjectURL(file);
+          document.getElementById(`${target}-upload-area`).style.display = 'none';
+          document.getElementById(`${target}-selected`).style.display = 'block';
+        }
+        updateButtons();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function clearImage(target) {
+      delete imageBuffers[target];
+      document.getElementById(`${target}-upload-area`).style.display = 'block';
+      document.getElementById(`${target}-selected`).style.display = 'none';
+      updateButtons();
+    }
+
+    // Drag/drop
+    document.querySelectorAll('.drop-zone').forEach(zone => {
+      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+      zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+        const file = e.dataTransfer?.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const input = zone.querySelector('input');
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    });
+
+    function updateButtons() {
+      const d = (id, cond) => { const el = document.getElementById(id); if (el) el.disabled = !cond; };
+      d('detect-btn', isInitialized && imageBuffers.detect);
+      d('recognize-btn', isInitialized && imageBuffers.recognize);
+      d('verify-btn', isInitialized && imageBuffers.verify1 && imageBuffers.verify2);
+      d('spoofing-btn', isInitialized && imageBuffers.spoofing);
+      d('att-start-btn', isInitialized && imageBuffers.att && !attScanning);
+      d('search-btn', isInitialized && imageBuffers.search && (searchMode !== 'add' || (document.getElementById('search-name')?.value || '').trim() !== ''));
+    }
+
+    // ─── Initialize ─────────────────────────────────────────
+    async function initializeUniface() {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      const btn = document.getElementById('initBtn');
+      btn.disabled = true;
+      dot.className = 'status-dot loading';
+      text.textContent = 'Loading models... This may take a few minutes on first load.';
+      try {
+        const { Uniface } = await import('ppu-uniface/web');
+        uniface = new Uniface();
+        await uniface.initialize();
+        isInitialized = true;
+        dot.className = 'status-dot ready';
+        text.textContent = 'Models loaded - ready for inference';
+        btn.textContent = 'Ready';
+        document.getElementById('main-app').style.display = 'block'; // Show app
+        updateButtons();
+      } catch (err) {
+        dot.className = 'status-dot error';
+        text.textContent = `Error: ${err.message}`;
+        btn.disabled = false;
+        btn.textContent = 'Retry';
+        console.error('Init error:', err);
+      }
+    }
+
+    // ─── Detection ──────────────────────────────────────────
+    async function runDetection() {
+      const btn = document.getElementById('detect-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Detecting...';
+      const t0 = performance.now();
+      try {
+        const result = await uniface.detect(imageBuffers.detect);
+        const ms = (performance.now() - t0).toFixed(0);
+        document.getElementById('detect-time').innerHTML = timeHTML(ms);
+        if (!result) {
+          document.getElementById('detect-result').innerHTML = '<div class="result-grid"><div class="result-item" style="grid-column:1/-1"><div class="label">Result</div><div class="value warning">No face detected</div></div></div>';
+          document.getElementById('detect-canvas').style.display = 'none';
+        } else {
+          drawDetection(result);
+          document.getElementById('detect-result').innerHTML = `
+            <div class="result-grid">
+              <div class="result-item"><div class="label">Confidence</div><div class="value">${(result.confidence * 100).toFixed(2)}%</div></div>
+              <div class="result-item"><div class="label">Multiple Faces</div><div class="value ${result.multipleFaces ? 'warning' : ''}">${result.multipleFaces ? 'Yes' : 'No'}</div></div>
+            </div>
+            ${jsonBlock(result)}`;
+        }
+      } catch (err) {
+        document.getElementById('detect-result').innerHTML = errorHTML(err.message);
+        console.error(err);
+      }
+      btn.disabled = false;
+      btn.textContent = 'Detect Face';
+    }
+
+    function drawDetection(result) {
+      const img = document.getElementById('detect-img');
+      const canvas = document.getElementById('detect-canvas');
+      const placeholder = document.getElementById('detect-placeholder');
+      if (placeholder) placeholder.style.display = 'none';
+      canvas.style.display = 'block';
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      // Scale canvas to fit container
+      const container = canvas.parentElement;
+      const scale = Math.min(container.clientWidth / img.naturalWidth, 300 / img.naturalHeight);
+      canvas.style.width = (img.naturalWidth * scale) + 'px';
+      canvas.style.height = (img.naturalHeight * scale) + 'px';
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      // Bounding box
+      ctx.strokeStyle = '#00FF00';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(result.box.x, result.box.y, result.box.width, result.box.height);
+      // Landmarks
+      if (result.landmarks) {
+        ctx.fillStyle = '#FF0000';
+        for (const [x, y] of result.landmarks) {
+          ctx.beginPath();
+          ctx.arc(x, y, 5, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      }
+    }
+
+    // ─── Recognition ────────────────────────────────────────
+    async function runRecognition() {
+      const btn = document.getElementById('recognize-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Recognizing...';
+      const t0 = performance.now();
+      try {
+        const result = await uniface.recognize(imageBuffers.recognize);
+        const ms = (performance.now() - t0).toFixed(0);
+        const emb = result.embedding;
+        const preview = Array.from(emb.slice(0, 20)).map(v => v.toFixed(4)).join(', ');
+        document.getElementById('recognize-time').innerHTML = timeHTML(ms);
+        document.getElementById('recognize-result').innerHTML = `
+          <div class="result-grid">
+            <div class="result-item"><div class="label">Dimensions</div><div class="value">${emb.length}</div></div>
+            <div class="result-item"><div class="label">Type</div><div class="value">Float32Array</div></div>
+          </div>
+          <div class="json-block">
+            <div class="json-header"><span>Embedding Preview</span></div>
+            <pre class="json-pre">[${preview}, ...]</pre>
+          </div>`;
+      } catch (err) {
+        document.getElementById('recognize-result').innerHTML = errorHTML(err.message);
+        console.error(err);
+      }
+      btn.disabled = false;
+      btn.textContent = 'Generate Embedding';
+    }
+
+    // ─── Verification ───────────────────────────────────────
+    async function runVerification() {
+      const btn = document.getElementById('verify-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Verifying...';
+      const t0 = performance.now();
+      try {
+        const result = await uniface.verify(imageBuffers.verify1, imageBuffers.verify2, { compact: false });
+        const ms = (performance.now() - t0).toFixed(0);
+        const sim = result.verification.similarity;
+        const verified = result.verification.verified;
+        document.getElementById('verify-time').innerHTML = timeHTML(ms);
+        document.getElementById('verify-result').innerHTML = `
+          <div class="result-grid">
+            <div class="result-item"><div class="label">Similarity</div><div class="value">${(sim * 100).toFixed(2)}%</div></div>
+            <div class="result-item"><div class="label">Threshold</div><div class="value">${(result.verification.threshold * 100).toFixed(0)}%</div></div>
+            <div class="result-item" style="grid-column:1/-1"><div class="label">Verified</div><div class="value ${verified ? 'success' : 'danger'}">${verified ? 'Same Person' : 'Different Person'}</div></div>
+          </div>
+          <div class="sim-bar-outer"><div class="sim-bar-inner" style="width:${(sim*100).toFixed(1)}%"></div></div>
+          ${jsonBlock(result)}`;
+      } catch (err) {
+        document.getElementById('verify-result').innerHTML = errorHTML(err.message);
+        console.error(err);
+      }
+      btn.disabled = false;
+      btn.textContent = 'Verify Faces';
+    }
+
+    // ─── Spoofing ───────────────────────────────────────────
+    async function runSpoofing() {
+      const btn = document.getElementById('spoofing-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Analyzing...';
+      const t0 = performance.now();
+      try {
+        const result = await uniface.spoofingAnalysisWithDetection(imageBuffers.spoofing);
+        const ms = (performance.now() - t0).toFixed(0);
+        document.getElementById('spoofing-time').innerHTML = timeHTML(ms);
+        if (!result) {
+          document.getElementById('spoofing-result').innerHTML = '<div class="result-grid"><div class="result-item" style="grid-column:1/-1"><div class="label">Result</div><div class="value warning">No face detected</div></div></div>';
+        } else {
+          document.getElementById('spoofing-result').innerHTML = `
+            <div class="result-grid">
+              <div class="result-item" style="grid-column:1/-1"><div class="label">Verdict</div><div class="value ${result.real ? 'success' : 'danger'}">${result.real ? 'Real Face' : 'Spoofed / Fake'}</div></div>
+              <div class="result-item"><div class="label">Score</div><div class="value">${(result.score * 100).toFixed(1)}%</div></div>
+              <div class="result-item"><div class="label">Realness</div><div class="value">${(result.realness * 100).toFixed(1)}%</div></div>
+            </div>
+            ${jsonBlock(result)}`;
+        }
+      } catch (err) {
+        document.getElementById('spoofing-result').innerHTML = errorHTML(err.message);
+        console.error(err);
+      }
+      btn.disabled = false;
+      btn.textContent = 'Analyze Image';
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────
+    function timeHTML(ms) {
+      return `<div class="response-time"><span class="label">Response Time:</span><span class="val">${ms}ms</span></div>`;
+    }
+    function errorHTML(msg) {
+      return `<div class="result-grid"><div class="result-item" style="grid-column:1/-1"><div class="label">Error</div><div class="value danger">${msg}</div></div></div>`;
+    }
+    function jsonBlock(data) {
+      const json = JSON.stringify(data, (k, v) => v instanceof Float32Array ? `[Float32Array(${v.length})]` : v, 2);
+      return `<div class="json-block"><div class="json-header"><span>Full Response</span><button class="json-copy" onclick="copyJSON(this)">Copy</button></div><pre class="json-pre">${escapeHtml(json)}</pre></div>`;
+    }
+    function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    window.copyJSON = (btn) => {
+      const pre = btn.parentElement.nextElementSibling;
+      navigator.clipboard.writeText(pre.textContent);
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    };
+
+    // ─── Attendance ──────────────────────────────────────────
+
+    async function startAttendance() {
+      if (!imageBuffers.att || !isInitialized) return;
+      const video = document.getElementById('att-video');
+      try {
+        attStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        video.srcObject = attStream;
+      } catch { return; }
+      attScanning = true;
+      const fps = parseInt(document.getElementById('att-fps').value) / 10;
+      const ms = 1000 / fps;
+      document.getElementById('att-overlay').style.display = 'none';
+      document.getElementById('att-status-area').innerHTML = '<button class="btn-block btn-danger" onclick="stopAttendance()">Stop Scanning</button><div class="scan-status" id="att-scan-msg" style="margin-top:0.5rem">Scanning...</div>';
+      attInterval = setInterval(checkAttendanceFrame, ms);
+      updateButtons();
+    }
+
+    function stopAttendance() {
+      attScanning = false;
+      if (attInterval) { clearInterval(attInterval); attInterval = null; }
+      if (attStream) { attStream.getTracks().forEach(t => t.stop()); attStream = null; }
+      document.getElementById('att-status-area').innerHTML = '<button class="btn-block" id="att-start-btn" onclick="startAttendance()">Start Attendance Check</button>';
+      updateButtons();
+    }
+
+    async function checkAttendanceFrame() {
+      if (!attScanning || !uniface) return;
+      const video = document.getElementById('att-video');
+      const c = document.createElement('canvas');
+      c.width = video.videoWidth; c.height = video.videoHeight;
+      c.getContext('2d').drawImage(video, 0, 0);
+      const blob = await new Promise(r => c.toBlob(r, 'image/jpeg'));
+      const buf = await blob.arrayBuffer();
+      const threshold = parseInt(document.getElementById('att-thresh').value) / 100;
+      try {
+        const res = await uniface.verify(imageBuffers.att, buf, { compact: false });
+        const sim = res.verification?.similarity ?? 0;
+        const msg = document.getElementById('att-scan-msg');
+        if (msg) msg.textContent = `Last: ${(sim*100).toFixed(1)}% (need ${(threshold*100).toFixed(0)}%)`;
+        if (sim >= threshold) {
+          attScanning = false;
+          clearInterval(attInterval); attInterval = null;
+          document.getElementById('att-overlay').style.display = 'flex';
+          document.getElementById('att-status-area').innerHTML = `<div class="success-msg"><h3>Attendance Success!</h3><p>Similarity: ${(sim*100).toFixed(2)}%</p><button class="btn-outline" style="margin-top:0.75rem" onclick="stopAttendance()">Reset</button></div>`;
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    // ─── Face Search & DB ────────────────────────────────────
+    const DB_KEY = 'ppu-uniface-facedb';
+    function loadDB() { try { return JSON.parse(localStorage.getItem(DB_KEY) || '[]'); } catch { return []; } }
+    function saveDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+
+    function setSearchMode(mode) {
+      searchMode = mode;
+      document.getElementById('mode-search-btn').className = 'mode-btn' + (mode==='search' ? ' active' : '');
+      document.getElementById('mode-add-btn').className = 'mode-btn' + (mode==='add' ? ' active' : '');
+      document.getElementById('search-card-title').textContent = mode==='search' ? 'Search Input' : 'Add New Face';
+      document.getElementById('search-result-title').textContent = mode==='search' ? 'Search Results' : 'Database Faces';
+      document.getElementById('search-name-field').style.display = mode==='add' ? 'block' : 'none';
+      document.getElementById('search-btn').textContent = mode==='search' ? 'Search Database' : 'Save to Database';
+      if (mode === 'add') renderFaceList();
+      else document.getElementById('search-result').innerHTML = '<span class="placeholder">No matches found or search not started.</span>';
+      updateButtons();
+    }
+
+    function renderFaceList() {
+      const db = loadDB();
+      if (db.length === 0) { document.getElementById('search-result').innerHTML = '<span class="placeholder">Database is empty.</span>'; return; }
+      document.getElementById('search-result').innerHTML = db.map((f,i) => `<div class="face-entry"><div><span class="face-name">${escapeHtml(f.name)}</span><br><span class="face-date">${new Date(f.createdAt).toLocaleDateString()}</span></div><button class="face-delete" onclick="deleteFace(${i})">Remove</button></div>`).join('');
+    }
+
+    function deleteFace(idx) {
+      const db = loadDB(); db.splice(idx, 1); saveDB(db); renderFaceList();
+    }
+
+    async function runSearch() {
+      if (!imageBuffers.search || !isInitialized) return;
+      const btn = document.getElementById('search-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>' + (searchMode==='search' ? 'Searching...' : 'Saving...');
+      try {
+        const rec = await uniface.recognize(imageBuffers.search);
+        const embedding = Array.from(rec.embedding);
+        if (searchMode === 'add') {
+          const name = document.getElementById('search-name').value.trim();
+          if (!name) { btn.disabled = false; btn.textContent = 'Save to Database'; return; }
+          const db = loadDB();
+          db.push({ id: Date.now().toString(36), name, embedding, createdAt: new Date().toISOString() });
+          saveDB(db);
+          document.getElementById('search-name').value = '';
+          clearImage('search');
+          renderFaceList();
+        } else {
+          const db = loadDB();
+          if (db.length === 0) { document.getElementById('search-result').innerHTML = '<span class="placeholder">Database is empty. Add faces first.</span>'; }
+          else {
+            const queryEmb = new Float32Array(embedding);
+            const results = db.map(f => {
+              const stored = new Float32Array(f.embedding);
+              const ver = uniface.verification ? uniface.verification.compare(queryEmb, stored) : cosineSim(queryEmb, stored);
+              return { face: f, similarity: ver.similarity ?? ver, verified: ver.verified ?? ver > 0.6 };
+            }).sort((a,b) => b.similarity - a.similarity);
+            document.getElementById('search-result').innerHTML = results.map(m => `<div class="face-entry"><div><span class="face-name">${escapeHtml(m.face.name)}</span><br><span class="face-date">ID: ${m.face.id}</span></div><div style="text-align:right"><span class="face-sim ${m.verified?'success':'warning'}">${(m.similarity*100).toFixed(2)}%</span><br><span style="font-size:0.7rem;color:${m.verified?'var(--success)':'var(--warning)'}">${m.verified?'Verified':'Low Confidence'}</span></div></div>`).join('');
+          }
+        }
+      } catch (e) { document.getElementById('search-result').innerHTML = errorHTML(e.message); console.error(e); }
+      btn.disabled = false;
+      btn.textContent = searchMode==='search' ? 'Search Database' : 'Save to Database';
+    }
+  </script>
+</body>
+</html>

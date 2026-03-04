@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SpoofingDetection } from "../../src/analysis/spoofing.ana.js";
+import { defaultNodePlatform } from "../../src/core/platform.node.js";
 import { alignAndCropFace, RetinaNetDetection } from "../../src/index.js";
 import { LoggerConfig } from "../../src/logger.js";
 
@@ -49,7 +50,7 @@ describe("SpoofingDetection", () => {
       "assets/image-haaland1.jpeg"
     ).arrayBuffer();
     const face = await detection.detect(imageBuffer);
-    const crop = await alignAndCropFace(imageBuffer, face!);
+    const crop = await alignAndCropFace(imageBuffer, face!, defaultNodePlatform);
 
     const result = await spoofing.analyze(imageBuffer, {
       x: 0,
@@ -89,7 +90,7 @@ describe("SpoofingDetection", () => {
   test("should analyze fake image 1 for spoofing via facial area", async () => {
     const imageBuffer = await Bun.file("assets/image-fake1.jpg").arrayBuffer();
     const face = await detection.detect(imageBuffer);
-    const crop = await alignAndCropFace(imageBuffer, face!);
+    const crop = await alignAndCropFace(imageBuffer, face!, defaultNodePlatform);
 
     const result = await spoofing.analyze(imageBuffer, {
       x: 0,
@@ -109,7 +110,7 @@ describe("SpoofingDetection", () => {
   test("should analyze fake image 2 for spoofing via facial area", async () => {
     const imageBuffer = await Bun.file("assets/image-fake2.jpg").arrayBuffer();
     const face = await detection.detect(imageBuffer);
-    const crop = await alignAndCropFace(imageBuffer, face!);
+    const crop = await alignAndCropFace(imageBuffer, face!, defaultNodePlatform);
 
     const result = await spoofing.analyze(imageBuffer, {
       x: 0,
